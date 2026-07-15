@@ -1,0 +1,5 @@
+{
+  "framework": "container",
+  "handle": "concepttesting/futures-intelligence",
+  "port": 3000
+}

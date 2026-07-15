@@ -1,0 +1,14 @@
+# Image needs only server.mjs + dist/. Keep everything else out.
+.git
+.gitignore
+backend/
+SETUP.md
+*.md
+/index.html
+Dockerfile
+.dockerignore
+airbase.json
+build-airbase.mjs
+node_modules/
+.env
+.env.*

@@ -1,0 +1,8 @@
+# Secrets — never commit. Airbase injects these at deploy time.
+.env
+.env.*
+node_modules/
+# Runtime scan-engine store (created by local server.mjs runs)
+data/
+# Reference material not licensed for redistribution
+thinkingabouttomorrow-digitalcopy.pdf
