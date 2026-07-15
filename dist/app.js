@@ -25,7 +25,7 @@
     { id: "fringe", name: "Ethan Mollick", kind: "Self-publishing", method: "RSS feed", url: "https://www.oneusefulthing.org/", excerpts: [] },
     { id: "sgpolicy", name: "Singapore skills policy", kind: "Government & policy", method: "RSS feed", url: "https://www.mom.gov.sg/", excerpts: [] },
     { id: "zh", name: "Chinese tech & jobs press", kind: "Different languages", method: "RSS feed", url: "https://news.google.com/", excerpts: [] },
-    { id: "bersin", name: "Josh Bersin", kind: "Industry analysts", method: "RSS feed", url: "https://joshbersin.com/", excerpts: [] },
+    { id: "oecd", name: "OECD Education & Skills", kind: "Think tanks & gov", method: "RSS feed", url: "https://www.oecd.org/education/", excerpts: [] },
     { id: "sgnews", name: "Channel NewsAsia", kind: "Trade press", method: "RSS feed", url: "https://www.channelnewsasia.com/", excerpts: [] },
     
   ];

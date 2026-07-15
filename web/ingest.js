@@ -101,7 +101,50 @@
     "Wired":                       { feed: "https://www.wired.com/feed/rss", csf: "Trade press" },
     "The Verge":                   { feed: "https://www.theverge.com/rss/index.xml", csf: "Trade press" },
     "TechCrunch":                  { feed: "https://techcrunch.com/feed/", csf: "Trade press" },
-    "VentureBeat AI":              { feed: "https://venturebeat.com/category/ai/feed/", csf: "Trade press" }
+    "VentureBeat AI":              { feed: "https://venturebeat.com/category/ai/feed/", csf: "Trade press" },
+    // Persona-pack sources (feeds/queries verified 2026-07-15)
+    "Restaurant Dive":             { feed: "https://www.restaurantdive.com/feeds/news/", csf: "Trade press · F&B" },
+    "Inside Retail Asia":          { feed: "https://insideretail.asia/feed/", csf: "Trade press · APAC retail" },
+    "Indeed Hiring Lab":           { feed: "https://www.hiringlab.org/feed/", csf: "Analysts · labour-market data" },
+    "IMDA & Smart Nation":         { query: '(IMDA OR "Smart Nation") Singapore (AI OR digital OR workforce OR technology) when:90d', csf: "Government & policy · digital" },
+    "Hiring practice signals":     { query: '"skills-based hiring" OR "AI interview" OR "resume screening" OR "AI recruiting" when:90d', csf: "Trade press · hiring & HR tech" },
+    "Singapore care workforce":    { query: 'Singapore (nurses OR "healthcare workforce" OR eldercare OR "community care") (manpower OR skills OR training OR jobs) when:90d', csf: "Government & policy · care economy" },
+    "Singapore retail & F&B jobs": { query: 'Singapore (retail OR "food services" OR "F&B") (manpower OR hiring OR automation OR "self-checkout" OR robots OR wages) when:90d', csf: "Trade press · Singapore sectors" },
+    "IEA (energy & jobs)":         { query: 'site:iea.org (jobs OR skills OR workforce OR employment OR "energy transition") when:180d', csf: "Think tanks & gov · STEEPLE: environmental" }
+  };
+
+  // Persona-tuned source packs: matched against the saved persona text by
+  // profile.js, which offers one-click adds in the profile panel. Every source
+  // named here must exist in FEEDS. Packs are capped small — the signal budget
+  // below keeps the total prompt under the LLM gateway's ceiling regardless.
+  window.__FI_PACKS__ = [
+    { name: "Retail & F&B",           match: /retail|f&b|food service|restaurant|hospitality/i,
+      sources: ["Restaurant Dive", "Inside Retail Asia", "Singapore retail & F&B jobs"] },
+    { name: "Careers & hiring",       match: /career (coach|service|health)|careersfinder|job.?seek|hiring|placement|mid-career|recruit/i,
+      sources: ["Hiring practice signals", "Indeed Hiring Lab", "HR Dive"] },
+    { name: "Green economy",          match: /green|climate|sustainab|energy transition|carbon|environment/i,
+      sources: ["Carbon Brief", "IEA (energy & jobs)", "arXiv (Economics)"] },
+    { name: "Care economy",           match: /health|care work|nurs|eldercare|ageing|aging|community care/i,
+      sources: ["Singapore care workforce", "HR Dive", "The Conversation"] },
+    { name: "Digital government",     match: /smart nation|digital government|public sector|imda|civil service|govtech/i,
+      sources: ["IMDA & Smart Nation", "World Economic Forum"] },
+    { name: "Strategy & foresight",   match: /foresight|futures|strategy|horizon|environmental scan/i,
+      sources: ["World Economic Forum", "arXiv (Economics)", "Straits Times"] }
+  ];
+
+  // One-click add for profile.js: drives the app's own add-source form so the
+  // new card renders exactly like a hand-added one.
+  window.__FI_ADD_SOURCE__ = function (name) {
+    var input = document.getElementById("srcName");
+    var form = document.getElementById("srcAdd");
+    if (!input || !form || !FEEDS[name]) return false;
+    var existing = Array.prototype.slice.call(document.querySelectorAll("#srcList .src-name"))
+      .map(function (el) { return el.textContent.replace(/↗/g, "").trim(); });
+    if (existing.indexOf(name) !== -1) return false;
+    input.value = name;
+    if (form.requestSubmit) form.requestSubmit();
+    else form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    return true;
   };
 
   // CSF source-type labels for the card badges (read by the patched renderer).
@@ -223,7 +266,21 @@
         if (ta && ta.value.trim()) all.push(ta.value.trim());
       });
 
-      sig.value = all.join("\n\n");
+      // Signal budget: the LLM gateway 504s at 60s of generation; with the
+      // enriched 7-trend output the prompt must stay ≤ ~22k chars (verified:
+      // 25.3k → 504, 23.3k → ok). Trim the longest sources' oldest items until
+      // the combined pull fits. Cards keep their full text — only the
+      // assembled scan input is trimmed.
+      var BUDGET = 18000;
+      var blocks = all.map(function (t) { return t.split("\n\n"); });
+      function totalLen() { return blocks.reduce(function (a, b) { return a + b.join("\n\n").length + 2; }, 0); }
+      while (totalLen() > BUDGET) {
+        var bi = 0;
+        for (var i = 1; i < blocks.length; i++) if (blocks[i].length > blocks[bi].length) bi = i;
+        if (blocks[bi].length <= 2) break;   // never trim a source below 2 items
+        blocks[bi].pop();
+      }
+      sig.value = blocks.map(function (b) { return b.join("\n\n"); }).join("\n\n");
       sig.dispatchEvent(new Event("input", { bubbles: true }));
 
       freshBtn.disabled = false;

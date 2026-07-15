@@ -17,6 +17,10 @@ for pilot testing: each tester gets an **access code** and can set their own
      Edit freely; the CSF scanning method (weak signals, corroboration-driven
      confidence, What → So What → Now What) and output rules stay fixed, so you
      can't break the app.
+   - **Suggested sources** — when your persona names a domain (retail/F&B,
+     careers & hiring, green economy, care economy, digital government), the
+     panel offers matching sources to add with one click; the pull refreshes
+     automatically when you close the panel.
 3. The source cards fill automatically from the shared scan engine. **Scan &
    interpret**, review/accept/flag the cards, then **Draft briefing email** —
    the draft is written from your persona, with linked citations per trend.

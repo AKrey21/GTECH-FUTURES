@@ -45,6 +45,12 @@
     ".fi-btn.ghost:hover{background:#eef0e6;}" +
     ".fi-spacer{flex:1;}" +
     ".fi-hint{font-size:11.5px;color:#5c6b5f;margin-top:6px;line-height:1.4;}" +
+    ".fi-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}" +
+    ".fi-chip{border:1px solid #b9c2ab;background:#eef0e6;color:#3e5c46;border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer;}" +
+    ".fi-chip:hover{background:#e2e6d6;}" +
+    ".fi-chip:disabled{opacity:.55;cursor:default;}" +
+    ".fi-chip-all{background:#3e5c46;color:#fbfaf5;border-color:#3e5c46;}" +
+    ".fi-chip-all:hover{background:#2f4735;}" +
     ".fi-pill{position:fixed;right:14px;bottom:14px;z-index:2147482000;border:1px solid #c9cfba;background:#fbfaf5;color:#2d3a31;border-radius:999px;padding:7px 14px;font:inherit;font-size:12.5px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.12);max-width:38vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
     ".fi-pill:hover{background:#eef0e6;}" +
     ".fi-toast{position:fixed;left:50%;bottom:60px;transform:translateX(-50%);z-index:2147483100;background:#2d3a31;color:#fbfaf5;border-radius:9px;padding:9px 16px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;}";
@@ -162,6 +168,65 @@
       "Describe who the analyst is, which organisation and readers the briefing serves, and what counts as relevant. " +
       "The CSF scanning method (weak signals, corroboration, What → So What → Now What) and output rules stay fixed."));
 
+    // Persona-tuned source packs (defined in ingest.js): sources matched to the
+    // persona text, one click to add. Recomputed as the persona is edited.
+    var sugWrap = el("div");
+    var addedAny = false;
+    function currentCards() {
+      return Array.prototype.slice.call(document.querySelectorAll("#srcList .src-name"))
+        .map(function (e) { return e.textContent.replace(/↗/g, "").trim(); });
+    }
+    function renderSuggestions() {
+      sugWrap.innerHTML = "";
+      var packs = window.__FI_PACKS__ || [];
+      var text = ta.value || "";
+      var have = currentCards();
+      var names = [];
+      packs.forEach(function (p) {
+        if (!p.match.test(text)) return;
+        p.sources.forEach(function (s) {
+          if (have.indexOf(s) === -1 && names.indexOf(s) === -1) names.push(s);
+        });
+      });
+      if (!names.length) return;
+      sugWrap.appendChild(el("label", "", "Suggested sources for this persona"));
+      var chips = el("div", "fi-chips");
+      var chipBtns = [];
+      names.slice(0, 6).forEach(function (n) {
+        var c = el("button", "fi-chip", "+ " + n);
+        c.type = "button";
+        c.addEventListener("click", function () {
+          if (window.__FI_ADD_SOURCE__ && window.__FI_ADD_SOURCE__(n)) {
+            addedAny = true;
+            c.disabled = true;
+            c.textContent = "✓ " + n;
+          }
+        });
+        chipBtns.push(c);
+        chips.appendChild(c);
+      });
+      if (chipBtns.length > 1) {
+        var allBtn = el("button", "fi-chip fi-chip-all", "Add all");
+        allBtn.type = "button";
+        allBtn.addEventListener("click", function () {
+          chipBtns.forEach(function (c) { if (!c.disabled) c.click(); });
+          allBtn.disabled = true;
+        });
+        chips.appendChild(allBtn);
+      }
+      sugWrap.appendChild(chips);
+      sugWrap.appendChild(el("div", "fi-hint", "Added sources pull live content — the pull refreshes automatically when you close this panel."));
+    }
+    var sugTimer = null;
+    ta.addEventListener("input", function () { clearTimeout(sugTimer); sugTimer = setTimeout(renderSuggestions, 400); });
+    renderSuggestions();
+    card.appendChild(sugWrap);
+    function refreshIfAdded() {
+      if (!addedAny) return;
+      var b = document.getElementById("sampleBtn");
+      if (b) setTimeout(function () { b.click(); }, 300);
+    }
+
     var row = el("div", "fi-row");
     var out = el("button", "fi-btn ghost", "Sign out");
     var close = el("button", "fi-btn ghost", "Close");
@@ -175,7 +240,7 @@
     veil.appendChild(card);
     document.body.appendChild(veil);
 
-    close.addEventListener("click", function () { veil.remove(); });
+    close.addEventListener("click", function () { veil.remove(); refreshIfAdded(); });
     out.addEventListener("click", function () {
       try { localStorage.removeItem(LS_KEY); } catch (e) {}
       location.reload();
@@ -195,6 +260,7 @@
       }).then(function (data) {
         signedIn(data);
         veil.remove();
+        refreshIfAdded();
         toast("Saved — your next scan and draft use this persona.");
       }).catch(function () {
         save.disabled = false;

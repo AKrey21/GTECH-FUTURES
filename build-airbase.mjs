@@ -117,7 +117,7 @@ patch('csf-defaults-b',
   '      "[World Economic Forum] Public-sector bodies are expanding digital public infrastructure and putting AI into citizen-facing service delivery, raising questions about trust, transparency and government workforce capability.",\n' +
   '      "[World Economic Forum] Its latest Future of Jobs analysis flags analytical thinking, resilience and AI literacy as the skills employers expect to rise most this decade."\n' +
   '    ]},',
-  '{ id: "bersin", name: "Josh Bersin", kind: "Industry analysts", method: "RSS feed", url: "https://joshbersin.com/", excerpts: [] },\n' +
+  '{ id: "oecd", name: "OECD Education & Skills", kind: "Think tanks & gov", method: "RSS feed", url: "https://www.oecd.org/education/", excerpts: [] },\n' +
   '    { id: "sgnews", name: "Channel NewsAsia", kind: "Trade press", method: "RSS feed", url: "https://www.channelnewsasia.com/", excerpts: [] },'
 );
 // The pilot's cards must mirror the server engine's 8 watched sources, so the

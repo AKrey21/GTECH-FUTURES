@@ -193,6 +193,10 @@ const FEED_HOST_ALLOW = new Set([
   'marginalrevolution.com', 'www.marginalrevolution.com',
   'www.carbonbrief.org', 'carbonbrief.org',
   'www.straitstimes.com', 'straitstimes.com',
+  // persona-pack sources (feeds verified 2026-07-15)
+  'www.restaurantdive.com', 'restaurantdive.com',
+  'insideretail.asia', 'www.insideretail.asia',
+  'www.hiringlab.org', 'hiringlab.org',
 ]);
 function googleNewsUrl(q, lang) {
   const loc = lang === 'zh' ? 'hl=zh-CN&gl=CN&ceid=CN:zh-Hans' : 'hl=en-SG&gl=SG&ceid=SG:en';
@@ -290,7 +294,7 @@ function isPublicHttps(u) {
     const h = x.hostname;
     if (/^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(h)) return false;
     if (h === 'localhost' || h.endsWith('.internal') || h.endsWith('.local')) return false;
-    if (/(^|\.)(google\.|mckinsey\.com|oecd\.org|hrdive\.com)/i.test(h)) return false; // walls / GNews wrappers (403 verified 2026-07)
+    if (/(^|\.)(google\.|mckinsey\.com|oecd\.org|hrdive\.com|restaurantdive\.com)/i.test(h)) return false; // walls / GNews wrappers (403 verified 2026-07)
     return true;
   } catch { return false; }
 }
@@ -443,7 +447,9 @@ const WATCHED_SOURCES = [
   // of-record outlets (ST/CNA/BT/gov.sg), not aggregators like theindependent.sg.
   { name: 'Singapore skills policy', query: 'Singapore (SkillsFuture OR "Workforce Singapore" OR "Ministry of Manpower") (skills OR jobs OR training OR workforce) (site:channelnewsasia.com OR site:straitstimes.com OR site:businesstimes.com.sg OR site:gov.sg) when:90d' },
   { name: 'Chinese tech & jobs press', query: '人工智能 就业 技能', lang: 'zh' },
-  { name: 'Josh Bersin', feed: 'https://joshbersin.com/feed/' },
+  // Replaced Josh Bersin (zero citations across every pilot cycle) with OECD —
+  // the testers' top-requested institutional source. Bersin stays in the catalog.
+  { name: 'OECD Education & Skills', query: 'site:oecd.org (skills OR "adult learning" OR "vocational" OR "future of work" OR workforce OR "AI in education") when:180d' },
   { name: 'Channel NewsAsia', feed: 'https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml' },
 ];
 
