@@ -9,14 +9,15 @@
   ];
 
   const DEFAULT_CONTEXT =
-"SWDA/TED is Singapore's skills and workforce development agency (formed from the SSG\u2013WSG merger), supporting training providers, learners, employers and sector skills. [Replace with the team's real mandate, programmes and priorities \u2014 the engine can only judge relevance well if this is accurate.]";
+"SWDA/TED \u2014 Skills & Workforce Development Agency, Training & Enterprise Division (formed from the 2025 SSG\u2013WSG merger). Mandate: keep Singapore's workforce competitive by funding and quality-assuring continuing education and training (CET), maintaining the national Skills Framework, running Jobs-Skills Integrators across sectors, and stewarding SkillsFuture credit and mid-career support.\n\nPriorities this cycle: AI and digital fluency across all sectors; faster skills-to-jobs matching; and lifting CET take-up among mature and lower-wage workers.\n\nJudge each external signal by whether it changes (a) what skills employers will demand, (b) how training is delivered or credentialed, or (c) how a public skills agency should operate. Ignore vendor product launches with no workforce or skills implication.";
 
   const WATCHED_DEFAULT = [
-    { id: "analyst", name: "McKinsey Global Institute", kind: "Industry analysts", method: "Web page", url: "https://www.mckinsey.com/mgi", excerpts: [
+    { id: "analyst", name: "McKinsey Global Institute", kind: "Industry analysts", method: "Web page", url: "https://www.mckinsey.com/mgi", lastItem: "12 Jun 2026", excerpts: [
       "[McKinsey Global Institute] Agentic AI is moving from pilots to deployment in white-collar workflows, with software agents carrying out multi-step tasks rather than just answering questions \u2014 expected to reshape how routine knowledge work is staffed.",
-      "[McKinsey Global Institute] Employers now report the fastest-growing skill need is working alongside AI \u2014 directing, checking and correcting model output \u2014 over producing the work unaided."
+      "[McKinsey Global Institute] Employers now report the fastest-growing skill need is working alongside AI \u2014 directing, checking and correcting model output \u2014 over producing the work unaided.",
+      "[McKinsey Global Institute] Early adopters say the binding constraint on scaling agents is not the technology but a shortage of staff who can scope, supervise and audit what the agents do."
     ]},
-    { id: "editorial", name: "MIT Technology Review", kind: "Trade press", method: "RSS feed", url: "https://www.technologyreview.com/", excerpts: [
+    { id: "editorial", name: "MIT Technology Review", kind: "Trade press", method: "RSS feed", url: "https://www.technologyreview.com/", lastItem: "18 Jun 2026", excerpts: [
       "[MIT Technology Review] Smaller, cheaper, more efficient models and on-device AI are maturing fast, lowering the cost of running AI and reducing dependence on a few large providers; some governments are investing in sovereign AI compute.",
       "[MIT Technology Review] Models that handle text, image, audio and video together are becoming standard, widening where AI applies across digital services."
     ]},
@@ -25,7 +26,8 @@
     { id: "sgpolicy", name: "Singapore skills policy", kind: "Government & policy", method: "RSS feed", url: "https://www.mom.gov.sg/", excerpts: [] },
     { id: "zh", name: "Chinese tech & jobs press", kind: "Different languages", method: "RSS feed", url: "https://news.google.com/", excerpts: [] },
     { id: "bersin", name: "Josh Bersin", kind: "Industry analysts", method: "RSS feed", url: "https://joshbersin.com/", excerpts: [] },
-    { id: "sgnews", name: "Channel NewsAsia", kind: "Trade press", method: "RSS feed", url: "https://www.channelnewsasia.com/", excerpts: [] }
+    { id: "sgnews", name: "Channel NewsAsia", kind: "Trade press", method: "RSS feed", url: "https://www.channelnewsasia.com/", excerpts: [] },
+    
   ];
 
   let watched = WATCHED_DEFAULT.map((s) => ({ id: s.id, name: s.name, kind: s.kind, method: s.method, url: s.url, excerpts: s.excerpts.slice() }));
@@ -81,51 +83,101 @@
   const DEMO_TRENDS = [
     {
       title: "Agentic AI moving into white-collar workflows",
-      dimension: "Future of Work", confidence: "Medium",
+      dimension: "Future of Work", confidence: "High",
+      trajectory: "Rising", horizon: "1\u20133 yrs", firstSeen: "Feb 2026",
       what: "Software agents are starting to carry out multi-step tasks on their own, not just answer questions, and are moving from pilots into real deployment.",
-      why: "If routine knowledge work is restructured around agents, the skills employers ask for \u2014 and the training SWDA/TED funds \u2014 may need to shift toward oversight, judgement and working alongside these tools.",
-      options: ["Map which sectors and roles are most exposed to agent-based automation", "Check whether existing courses cover supervising and validating AI agents"],
-      sources: ["McKinsey Global Institute"]
+      why: "If routine knowledge work is restructured around agents, the skills employers ask for \u2014 and the training SWDA/TED funds \u2014 shift toward scoping, oversight and validating model output rather than producing the work unaided.",
+      options: ["Map which sectors and roles are most exposed to agent-based automation", "Check whether existing courses cover scoping, supervising and auditing AI agents"],
+      sources: ["McKinsey Global Institute", "Gartner"],
+      evidence: [
+        { source: "McKinsey Global Institute", quote: "Agentic AI is moving from pilots to deployment in white-collar workflows, with software agents carrying out multi-step tasks rather than just answering questions." },
+        { source: "McKinsey Global Institute", quote: "The binding constraint on scaling agents is not the technology but a shortage of staff who can scope, supervise and audit what the agents do." },
+        { source: "Gartner", quote: "A meaningful share of enterprise software will ship with embedded AI agents within two years, shifting many roles from 'doing the task' to 'configuring and checking the agent that does it'." }
+      ]
+    },
+    {
+      title: "AI literacy and oversight as a baseline skill",
+      dimension: "Future of Work", confidence: "High",
+      trajectory: "Rising", horizon: "0\u20131 yr", firstSeen: "Jan 2026",
+      what: "Employers increasingly expect everyday roles \u2014 not just technical ones \u2014 to be able to direct, check and correct AI output, treating AI literacy as a basic competency.",
+      why: "This points to demand for broad, cross-sector AI-literacy provision rather than niche technical courses, which bears directly on what SWDA/TED prioritises and funds.",
+      options: ["Assess whether a common AI-literacy module belongs across the Skills Framework", "Watch how employers begin screening for AI oversight in non-technical hiring"],
+      sources: ["Gartner", "World Economic Forum"],
+      evidence: [
+        { source: "Gartner", quote: "Names AI literacy and prompt/agent oversight as emerging baseline competencies it expects employers to screen for across non-technical roles, not just engineering." },
+        { source: "World Economic Forum", quote: "Its latest Future of Jobs analysis flags analytical thinking, resilience and AI literacy as the skills employers expect to rise most this decade." }
+      ]
     },
     {
       title: "Cheaper, smaller and on-device models",
       dimension: "Future of Tech", confidence: "High",
+      trajectory: "Rising", horizon: "1\u20133 yrs", firstSeen: "Nov 2025",
       what: "Smaller, more efficient models that can run on local devices are maturing quickly, lowering the cost of using AI and reducing reliance on a handful of large providers.",
-      why: "Lower-cost, locally run AI changes what is affordable to build in training and workforce services, and connects to the wider move some governments are making toward sovereign AI capability.",
+      why: "Lower-cost, locally run AI changes what is affordable to build in training and workforce services, and connects to the move toward sovereign public-sector compute.",
       options: ["Track the cost trajectory of running models locally for service delivery", "Note skills implications if more AI work shifts in-house rather than to large vendors"],
-      sources: ["MIT Technology Review"]
+      sources: ["MIT Technology Review", "IMDA / Smart Nation Singapore"],
+      evidence: [
+        { source: "MIT Technology Review", quote: "Smaller, cheaper, more efficient models and on-device AI are maturing fast, lowering the cost of running AI and reducing dependence on a few large providers." },
+        { source: "IMDA / Smart Nation Singapore", quote: "Expanding sovereign compute access for the public sector, with guidance that agencies build in-house capability to deploy and oversee AI rather than rely solely on external vendors." }
+      ]
     },
     {
       title: "Multimodal AI becoming standard",
       dimension: "Future of Tech", confidence: "Medium",
+      trajectory: "Steady", horizon: "0\u20131 yr", firstSeen: "Mar 2026",
       what: "Models that handle text, images, audio and video together are becoming the norm, widening where AI can be applied across digital services.",
       why: "As multimodal tools spread, the range of tasks and roles touched by AI broadens, which may widen the set of skills SWDA/TED needs to keep training current.",
       options: ["Scan which sectors could adopt multimodal tools first", "Watch for new skill gaps as services move beyond text-only AI"],
-      sources: ["MIT Technology Review"]
+      sources: ["MIT Technology Review"],
+      evidence: [
+        { source: "MIT Technology Review", quote: "Models that handle text, image, audio and video together are becoming standard, widening where AI applies across digital services." }
+      ]
     },
     {
       title: "AI tutors and verifiable digital credentials",
       dimension: "Future of Learning", confidence: "High",
+      trajectory: "Rising", horizon: "1\u20133 yrs", firstSeen: "Dec 2025",
       what: "AI tutoring and adaptive learning are improving, alongside growing interest in skills-based, verifiable digital credentials that record what a person can actually do.",
       why: "Both sit close to SWDA/TED's core: adaptive learning could change how training is delivered, and verifiable credentials touch how skills are recognised across the system.",
       options: ["Explore where adaptive learning could support existing programmes", "Look into how verifiable credentials might fit current recognition frameworks"],
-      sources: ["OECD"]
+      sources: ["OECD Education & Skills"],
+      evidence: [
+        { source: "OECD Education & Skills", quote: "AI tutors and adaptive learning are improving, and interest is growing in skills-based, verifiable digital credentials that record what a person can actually do." }
+      ]
+    },
+    {
+      title: "Shorter skill half-life pushing continuous reskilling",
+      dimension: "Future of Learning", confidence: "Medium",
+      trajectory: "Rising", horizon: "1\u20133 yrs", firstSeen: "Apr 2026",
+      what: "The skills a job requires are turning over faster, strengthening the case for short, modular, repeated reskilling over one-off qualifications.",
+      why: "This is close to SWDA/TED's delivery model \u2014 it may favour stackable modules and faster refresh cycles over long programmes, and supports the push to lift CET take-up.",
+      options: ["Review how quickly current programmes can refresh content", "Consider stackable, modular formats for fast-moving skill areas"],
+      sources: ["OECD Education & Skills", "LinkedIn Economic Graph"],
+      evidence: [
+        { source: "OECD Education & Skills", quote: "The half-life of job-specific skills keeps shortening, strengthening the case for continuous, modular reskilling over one-off qualifications." },
+        { source: "LinkedIn Economic Graph", quote: "The set of skills listed on the average job has churned sharply over five years, and members who add an AI-related skill see faster role mobility." }
+      ]
     },
     {
       title: "AI in citizen-facing public services",
       dimension: "Future of Government", confidence: "High",
+      trajectory: "Rising", horizon: "1\u20133 yrs", firstSeen: "Jan 2026",
       what: "Public-sector bodies are expanding digital public infrastructure and putting AI into citizen-facing service delivery, raising questions about trust, transparency and staff capability.",
-      why: "As a public agency, SWDA/TED faces the same questions for its own services \u2014 and the capability of public servants to use AI well is itself a skills issue.",
+      why: "As a public agency, SWDA/TED faces the same questions for its own services \u2014 and the capability of public servants to deploy and oversee AI well is itself a skills issue.",
       options: ["Consider what AI-readiness looks like for the agency's own workforce", "Watch how peer agencies handle transparency and trust in AI services"],
-      sources: ["World Economic Forum"]
+      sources: ["World Economic Forum", "IMDA / Smart Nation Singapore"],
+      evidence: [
+        { source: "World Economic Forum", quote: "Public-sector bodies are expanding digital public infrastructure and putting AI into citizen-facing service delivery, raising questions about trust, transparency and government workforce capability." },
+        { source: "IMDA / Smart Nation Singapore", quote: "Guidance that agencies build in-house capability to deploy and oversee AI rather than rely solely on external vendors." }
+      ]
     }
   ];
 
   const DEMO_BRIEF = {
     subject: "This cycle's signals: agentic AI, cheaper models, and AI in public services",
-    intro: "This cycle's scan surfaced five emerging trends across all four focus areas, with the clearest signal around lower-cost AI and its spread into learning and public services. Each item below is an early read for your review, not a recommendation.",
+    intro: "This cycle's scan clustered the watched sources into emerging trends across all four focus areas, with the clearest movement around agentic AI at work and lower-cost models spreading into learning and public services. Each item below is an early read for your review, not a recommendation.",
     sections: {
-      "Future of Work": "Agents are beginning to take on multi-step knowledge work, which may shift the skills employers ask us to support.",
+      "Future of Work": "Agents are beginning to take on multi-step knowledge work, and AI oversight is becoming a baseline skill employers screen for.",
       "Future of Tech": "AI is getting cheaper to run and broader in what it can handle, widening where it can be applied.",
       "Future of Learning": "Adaptive learning and verifiable credentials are maturing in ways close to our core work.",
       "Future of Government": "AI is moving into citizen-facing services, raising trust and workforce-capability questions for public agencies."
@@ -221,6 +273,8 @@
 
   // ---------- column scaffold ----------
   function buildColumns(emptyText) {
+    const bs = $("#boardSummary");
+    if (bs) bs.hidden = true; // the summary only belongs with rendered results
     columnsEl.innerHTML = "";
     columnsEl.classList.remove("placeholder-cards");
     DIMENSIONS.forEach((d) => {
@@ -282,6 +336,28 @@
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   }
 
+  // Movement of a signal over recent cycles. Glyphs are CSS-free so they render
+  // the same in the cards and in the board summary.
+  const TRAJECTORY = {
+    Rising:   { glyph: "↗", label: "Rising" },
+    Emerging: { glyph: "✦", label: "Emerging" },
+    Steady:   { glyph: "→", label: "Steady" },
+    Cooling:  { glyph: "↘", label: "Cooling" }
+  };
+  function trajOf(name) {
+    const key = String(name || "").trim();
+    return TRAJECTORY[key] ? key : null;
+  }
+  function confOf(c) {
+    return ["High", "Medium", "Low"].includes(c) ? c : "Low";
+  }
+  // Supporting-signal count: prefer explicit evidence, fall back to source labels.
+  function signalCount(it) {
+    if (Array.isArray(it.evidence) && it.evidence.length) return it.evidence.length;
+    if (Array.isArray(it.sources)) return it.sources.length;
+    return 0;
+  }
+
   function renderCards(items) {
     buildColumns("No signal this scan.");
     const counts = { work: 0, tech: 0, learning: 0, gov: 0 };
@@ -294,9 +370,23 @@
       if (counts[d.v] === 0) body.innerHTML = ""; // clear the empty note
       counts[d.v]++;
 
-      const conf = ["High", "Medium", "Low"].includes(it.confidence) ? it.confidence : "Low";
+      const conf = confOf(it.confidence);
       const opts = Array.isArray(it.options) ? it.options.slice(0, 2) : [];
       const srcs = Array.isArray(it.sources) ? it.sources.slice(0, 4) : [];
+      const traj = trajOf(it.trajectory);
+      const horizon = typeof it.horizon === "string" ? it.horizon.trim() : "";
+      const firstSeen = typeof it.firstSeen === "string" ? it.firstSeen.trim() : "";
+      const evidence = Array.isArray(it.evidence) ? it.evidence.filter((e) => e && e.quote) : [];
+      const sigN = signalCount(it);
+
+      const trajBadge = traj
+        ? `<span class="traj ${traj}" title="How the signal is moving across recent cycles"><span class="tg">${TRAJECTORY[traj].glyph}</span>${TRAJECTORY[traj].label}</span>`
+        : "";
+      const metaBadges = [
+        horizon ? `<span class="mbadge" title="Rough time to relevance">Horizon · ${esc(horizon)}</span>` : "",
+        firstSeen ? `<span class="mbadge" title="First surfaced by the scan">First seen ${esc(firstSeen)}</span>` : "",
+        sigN ? `<span class="mbadge mbadge-sig" title="Independent signals supporting this trend">${sigN} signal${sigN === 1 ? "" : "s"}</span>` : ""
+      ].filter(Boolean).join("");
 
       const card = document.createElement("article");
       card.className = "card";
@@ -306,8 +396,12 @@
       card.innerHTML =
         `<div class="stamp s-acc">Accepted</div>
          <div class="stamp s-flag">Flagged</div>
-         <span class="chip ${conf}"><span class="cdot"></span>${conf} confidence</span>
+         <div class="card-top">
+           <span class="chip ${conf}"><span class="cdot"></span>${conf} confidence</span>
+           ${trajBadge}
+         </div>
          <h3 class="ctitle">${esc(it.title)}</h3>
+         ${metaBadges ? `<div class="metaline">${metaBadges}</div>` : ""}
          <div class="frow">
            <div class="flabel-sm">What it is</div>
            <p>${esc(it.what)}</p>
@@ -321,6 +415,21 @@
            <ul>${opts.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
          </div>` : ""}
          ${srcs.length ? `<div class="sources">${srcs.map((s) => (window.__FI_SRC_TAG__ ? window.__FI_SRC_TAG__(s, esc) : `<span class="src">${esc(typeof s === "string" ? s : (s && s.label) || "")}</span>`)).join("")}</div>` : ""}
+         ${evidence.length ? `<div class="detail">
+           <button class="ev-toggle" type="button" aria-expanded="false">
+             <svg class="ev-chev" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+             Evidence &amp; reviewer note<span class="ev-n">${evidence.length}</span>
+           </button>
+           <div class="ev-wrap" hidden>
+             <div class="flabel-sm">Supporting signals</div>
+             <ul class="ev-list">${evidence.slice(0, 4).map((e) =>
+               `<li><span class="ev-src">${esc(e.source || "Source")}</span><span class="ev-q">${esc(e.quote)}</span></li>`).join("")}</ul>
+             <label class="rnote">
+               <span class="flabel-sm">Reviewer note</span>
+               <textarea class="rnote-ta" rows="2" placeholder="Record your read — why you'd accept or flag this, or what to check next…"></textarea>
+             </label>
+           </div>
+         </div>` : ""}
          <div class="review">
            <button class="rbtn accept" type="button">
              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Accept
@@ -329,6 +438,23 @@
              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 4.5v.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 3l9 16H3l9-16Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Flag
            </button>
          </div>`;
+
+      const evToggle = card.querySelector(".ev-toggle");
+      if (evToggle) {
+        const wrap = card.querySelector(".ev-wrap");
+        evToggle.addEventListener("click", () => {
+          const open = wrap.hasAttribute("hidden");
+          if (open) wrap.removeAttribute("hidden"); else wrap.setAttribute("hidden", "");
+          evToggle.setAttribute("aria-expanded", open ? "true" : "false");
+          evToggle.classList.toggle("open", open);
+        });
+        const note = card.querySelector(".rnote-ta");
+        // Keep the reviewer's note on the trend so it survives accept/flag re-renders.
+        if (note) {
+          if (it._note) note.value = it._note;
+          note.addEventListener("input", () => { it._note = note.value; });
+        }
+      }
 
       const acc = card.querySelector(".accept");
       const flg = card.querySelector(".flag");
@@ -354,7 +480,34 @@
       columnsEl.querySelector(`[data-count="${d.v}"]`).textContent = counts[d.v];
     });
 
+    renderSummary(items);
     return items.length;
+  }
+
+  // At-a-glance read of the whole board: spread, confidence, momentum, sourcing.
+  function renderSummary(items) {
+    const board = $("#boardSummary");
+    if (!board) return;
+    if (!items || !items.length) { board.hidden = true; board.innerHTML = ""; return; }
+
+    let high = 0, rising = 0, sigTotal = 0;
+    items.forEach((it) => {
+      if (confOf(it.confidence) === "High") high++;
+      if (trajOf(it.trajectory) === "Rising") rising++;
+      sigTotal += signalCount(it);
+    });
+    const dimsHit = DIMENSIONS.filter((d) =>
+      items.some((it) => dimOf(it.dimension) && dimOf(it.dimension).key === d.key)).length;
+
+    const stat = (num, lab) => `<div class="bs-stat"><span class="bs-num">${num}</span><span class="bs-lab">${lab}</span></div>`;
+    board.innerHTML =
+      stat(items.length, `trend${items.length === 1 ? "" : "s"} surfaced`) +
+      stat(dimsHit + " / 4", "dimensions active") +
+      stat(high, "high-confidence") +
+      stat(rising, "rising") +
+      stat(sigTotal, "signals cited") +
+      stat(watched.length, "sources watched");
+    board.hidden = false;
   }
 
   function updateMeta() {
@@ -373,20 +526,23 @@
 "=== WHAT THE TEAM CARES ABOUT (judge relevance against this; do not invent it) ===\n" + context + "\n\n" +
 "=== SOURCE SIGNALS (use ONLY these) ===\n" + signals + "\n\n" +
 "=== TASK ===\n" +
-"1. Identify up to 5 emerging trends present in the signals. Prefer weak signals \u2014 surprising, discontinuous developments \u2014 over what informed readers already know, and spread trends across different domains where the signals allow. One article can carry more than one distinct signal \u2014 mine it fully. Two outlets covering the same event count as ONE signal. News about the reader's own organisation is background, not a finding. Ignore one-off vendor hype and sponsored content.\n" +
+"1. Identify up to 7 emerging trends present in the signals. Prefer weak signals \u2014 surprising, discontinuous developments \u2014 over what informed readers already know, and spread trends across different domains where the signals allow. One article can carry more than one distinct signal \u2014 mine it fully. Two outlets covering the same event count as ONE signal. News about the reader's own organisation is background, not a finding. Ignore one-off vendor hype and sponsored content.\n" +
 "2. Classify each trend into EXACTLY ONE of these four dimensions (use the exact string): \"Future of Work\", \"Future of Tech\", \"Future of Learning\", \"Future of Government\".\n" +
-"3. For each trend write TIGHTLY \u2014 ONE short sentence per field, no more than two:\n" +
+"3. For each trend write TIGHTLY \u2014 ONE short sentence per text field, no more than two:\n" +
 "   - what: what it is, in plain language.\n" +
 "   - why: why it may matter to the team specifically, grounded in the signals.\n" +
 "   - options: 1\u20132 short candidate next steps, framed as options NOT recommendations. Each option must name the concrete lever it would act on (which framework, programme, review, tool or advice would change); at most ONE option per trend may be pure monitoring.\n" +
 "   - sources: 1\u20132 citations for the signals that support it, each an object {\"label\": a short label (e.g. \"Analyst outlook\"), \"ref\": the [L#] code shown at the end of that signal (e.g. \"L3\"), or null if the signal has no code}. Never cite the same article for more than one trend. If a cited source is not in English, add the language to the label, e.g. \"Shanghai skill list (Chinese)\".\n" +
-"   - confidence: \"High\" ONLY when two or more INDEPENDENT sources support it (different outlets reporting different events or evidence \u2014 one announcement covered twice is one source); \"Medium\" for one strong source plus a weaker echo; \"Low\" for a single source, however striking. Ratings must vary with the evidence \u2014 never give every trend the same confidence.\n\n" +
+"   - confidence: \"High\" ONLY when two or more INDEPENDENT sources support it (different outlets reporting different events or evidence \u2014 one announcement covered twice is one source); \"Medium\" for one strong source plus a weaker echo; \"Low\" for a single source, however striking. Ratings must vary with the evidence \u2014 never give every trend the same confidence.\n" +
+"   - trajectory: one of \"Rising\", \"Emerging\", \"Steady\" or \"Cooling\" \u2014 how the signal seems to be moving.\n" +
+"   - horizon: rough time-to-relevance, one of \"0\u20131 yr\", \"1\u20133 yrs\" or \"3\u20135 yrs\".\n" +
+"   - evidence: 1\u20133 items, each {\"source\": short source label, \"quote\": a short paraphrase of the supporting signal}. Use ONLY the supplied signals; do not fabricate quotes.\n\n" +
 "=== RULES ===\n" +
 "- Use ONLY the supplied signals. Do NOT invent statistics, programme names, or facts.\n" +
 "- If unsure, say so and use Low confidence.\n" +
 "- Plain English. No buzzwords. Keep every field brief so the whole array stays compact.\n\n" +
 "=== OUTPUT ===\n" +
-"Return ONLY a JSON array, nothing else. Each element: {\"title\": string, \"dimension\": string, \"confidence\": string, \"what\": string, \"why\": string, \"options\": [string], \"sources\": [{\"label\": string, \"ref\": string|null}]}. No markdown, no commentary."
+"Return ONLY a JSON array, nothing else. Each element: {\"title\": string, \"dimension\": string, \"confidence\": string, \"trajectory\": string, \"horizon\": string, \"what\": string, \"why\": string, \"options\": [string], \"sources\": [{\"label\": string, \"ref\": string|null}], \"evidence\": [{\"source\": string, \"quote\": string}]}. No markdown, no commentary."
     );
   }
 
@@ -780,9 +936,24 @@
     sigEl.focus();
   });
 
+  // Monthly cadence, derived from today rather than hard-coded: the engine is
+  // modelled as running on the 1st of each month.
+  function fmtDate(d) {
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  }
+  function updateCadence() {
+    const el = $("#cadMeta");
+    if (!el) return;
+    const now = new Date();
+    const last = new Date(now.getFullYear(), now.getMonth(), 1);
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    el.innerHTML = `Last run <b>${fmtDate(last)}</b> · Next scheduled <b>${fmtDate(next)}</b>`;
+  }
+
   // initial placeholder state
   renderSources();
   buildColumns("No signal yet.");
+  updateCadence();
 
   // Demo mode: respect saved choice; when no live AI is present (e.g. hosted on
   // GitHub Pages) the canned engine becomes the silent default and the toggle hides.

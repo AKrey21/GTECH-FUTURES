@@ -21,7 +21,8 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 // GovTech AI Studio "Models" — OpenAI-compatible gateway. Overridable via env.
 const LLM_URL = process.env.LLM_URL || 'https://api.ai.tech.gov.sg/platform/models/v1/chat/completions';
 const MODEL = process.env.LLM_MODEL || 'gpt-5.5';
-const MAX_TOKENS = parseInt(process.env.MAX_TOKENS || '4096', 10);
+// Headroom for the enriched scan output (up to 7 trends with evidence quotes).
+const MAX_TOKENS = parseInt(process.env.MAX_TOKENS || '6000', 10);
 const KEY = process.env.LLM_API_KEY || process.env.ANTHROPIC_API_KEY || '';
 
 // The system prompt has two parts: an EDITABLE persona (who the analyst is, who

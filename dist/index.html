@@ -625,6 +625,27 @@
   .out-head .meta { font-size: 13px; color: var(--ink-3); }
   .out-head .meta b { color: var(--ink); font-weight: 600; }
 
+  /* ---------- Board summary ---------- */
+  .board-summary {
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    gap: 1px; background: var(--line); border: 1px solid var(--line);
+    border-radius: 12px; overflow: hidden; margin-bottom: 22px;
+    box-shadow: var(--shadow-sm);
+  }
+  @media (max-width: 760px) { .board-summary { grid-template-columns: repeat(3, 1fr); } }
+  .bs-stat {
+    background: var(--card); padding: 13px 16px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .bs-num {
+    font-family: "Newsreader", serif; font-size: 24px; font-weight: 600;
+    line-height: 1; color: var(--ink); letter-spacing: -.01em;
+  }
+  .bs-lab {
+    font-size: 11px; font-weight: 600; letter-spacing: .03em;
+    text-transform: uppercase; color: var(--ink-3);
+  }
+
   .columns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
   @media (max-width: 1100px) { .columns { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 620px) { .columns { grid-template-columns: 1fr; } }
@@ -730,6 +751,71 @@
   }
   .card.accepted .stamp.s-acc { opacity: 1; background: var(--accept); }
   .card.flagged .stamp.s-flag { opacity: 1; background: var(--flag); }
+
+  /* ---------- Card: header row, momentum, meta badges ---------- */
+  .card-top {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; margin-bottom: 2px;
+  }
+  .traj {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
+    padding: 3px 8px; border-radius: 6px; white-space: nowrap;
+  }
+  .traj .tg { font-size: 12px; line-height: 1; }
+  .traj.Rising   { background: var(--accept-tint); color: var(--accept); }
+  .traj.Emerging { background: var(--flag-tint);   color: var(--flag); }
+  .traj.Steady   { background: #ECE9E2;            color: var(--ink-3); }
+  .traj.Cooling  { background: var(--tech-tint);   color: var(--tech); }
+
+  .metaline { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 11px; }
+  .mbadge {
+    font-size: 10.5px; font-weight: 600; color: var(--ink-3);
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: 5px; padding: 2px 7px; white-space: nowrap;
+  }
+  .mbadge-sig { color: var(--c); border-color: var(--c-tint); background: var(--c-tint); }
+
+  /* ---------- Card: evidence + reviewer note ---------- */
+  .detail { margin: 2px 0 0; }
+  .ev-toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: var(--ink-3);
+    background: none; border: none; padding: 6px 0; cursor: pointer;
+  }
+  .ev-toggle:hover { color: var(--ink); }
+  .ev-chev { transition: transform .16s ease; }
+  .ev-toggle.open .ev-chev { transform: rotate(180deg); }
+  .ev-n {
+    font-size: 10.5px; font-weight: 700; color: var(--c);
+    background: var(--c-tint); border-radius: 999px;
+    min-width: 18px; height: 18px; padding: 0 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .ev-wrap {
+    margin-top: 6px; padding: 12px 13px; border: 1px solid var(--line);
+    border-radius: 9px; background: var(--paper-2);
+  }
+  .ev-list { margin: 4px 0 12px; padding: 0; list-style: none;
+    display: flex; flex-direction: column; gap: 9px; }
+  .ev-list li {
+    font-size: 12.5px; line-height: 1.45; color: var(--ink-2);
+    padding-left: 11px; border-left: 2px solid var(--c);
+  }
+  .ev-src {
+    display: block; font-size: 10.5px; font-weight: 700;
+    letter-spacing: .03em; text-transform: uppercase; color: var(--c);
+    margin-bottom: 2px;
+  }
+  .ev-q { font-style: italic; }
+  .rnote { display: block; }
+  .rnote-ta {
+    width: 100%; margin-top: 5px; resize: vertical;
+    font-family: inherit; font-size: 12.5px; line-height: 1.45; color: var(--ink);
+    background: var(--card); border: 1px solid var(--line-strong);
+    border-radius: 7px; padding: 8px 10px;
+  }
+  .rnote-ta:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-tint); }
 
   /* placeholder before first scan */
   .placeholder-cards .card {
@@ -967,7 +1053,7 @@
       </div>
       <div class="cadence">
         <span class="cad-pill"><span class="cdot2"></span>Scans daily · briefs monthly</span>
-        <div class="cad-meta">Last run <b>—</b> · Next scheduled <b>1 Jul 2026</b></div>
+        <div class="cad-meta" id="cadMeta">Last run <b>—</b> · Next scheduled <b>—</b></div>
       </div>
     </div>
     <div class="src-list" id="srcList"></div>
@@ -1043,6 +1129,8 @@
     <h2 id="outTitle"><span id="outTitleText">Interpreted signals</span><span class="demo-badge" id="demoBadge" hidden="">Demo data</span></h2>
     <div class="meta" id="outMeta">Run a scan to populate the four dimensions.</div>
   </div>
+
+  <div class="board-summary" id="boardSummary" hidden=""></div>
 
   <div class="columns" id="columns"></div>
 

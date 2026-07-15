@@ -84,8 +84,8 @@ patch('prompt-sources-instruction',
   '"   - sources: 1\\u20132 citations for the signals that support it, each an object {\\"label\\": a short label (e.g. \\"Analyst outlook\\"), \\"ref\\": the [L#] code shown at the end of that signal (e.g. \\"L3\\"), or null if the signal has no code}.\\n" +'
 );
 patch('prompt-sources-format',
-  '\\"sources\\": [string]}. No markdown, no commentary."',
-  '\\"sources\\": [{\\"label\\": string, \\"ref\\": string|null}]}. No markdown, no commentary."'
+  '\\"sources\\": [string], \\"evidence\\"',
+  '\\"sources\\": [{\\"label\\": string, \\"ref\\": string|null}], \\"evidence\\"'
 );
 // 2) Card renderer: delegate source tags to ingest.js\'s linkifier (falls back to
 //    a plain span for demo mode / plain-string sources).
@@ -103,8 +103,9 @@ patch('expose-email-text',
 //    languages, government — not just trade press. OECD/WEF move to the type-to-add
 //    catalog; new defaults have empty excerpts (the live pull fills them).
 patch('csf-defaults-a',
-  '{ id: "research", name: "OECD Education & Skills", kind: "Academic & EdTech", method: "Web page", url: "https://www.oecd.org/", excerpts: [\n' +
-  '      "[OECD] AI tutors and adaptive learning are improving, and interest is growing in skills-based, verifiable digital credentials that record what a person can actually do."\n' +
+  '{ id: "research", name: "OECD Education & Skills", kind: "Academic & EdTech", method: "Web page", url: "https://www.oecd.org/education/", lastItem: "3 Jun 2026", excerpts: [\n' +
+  '      "[OECD] AI tutors and adaptive learning are improving, and interest is growing in skills-based, verifiable digital credentials that record what a person can actually do.",\n' +
+  '      "[OECD] Reports that the half-life of job-specific skills keeps shortening, strengthening the case for continuous, modular reskilling over one-off qualifications."\n' +
   '    ]},',
   '{ id: "journals", name: "arXiv (Computers & Society)", kind: "Journals", method: "RSS feed", url: "https://arxiv.org/list/cs.CY/recent", excerpts: [] },\n' +
   '    { id: "fringe", name: "Ethan Mollick", kind: "Self-publishing", method: "RSS feed", url: "https://www.oneusefulthing.org/", excerpts: [] },\n' +
@@ -112,12 +113,34 @@ patch('csf-defaults-a',
   '    { id: "zh", name: "Chinese tech & jobs press", kind: "Different languages", method: "RSS feed", url: "https://news.google.com/", excerpts: [] },'
 );
 patch('csf-defaults-b',
-  '{ id: "policy", name: "World Economic Forum", kind: "Think tanks & gov", method: "RSS feed", url: "https://www.weforum.org/", excerpts: [\n' +
+  '{ id: "policy", name: "World Economic Forum", kind: "Think tanks & gov", method: "RSS feed", url: "https://www.weforum.org/", lastItem: "15 Jun 2026", excerpts: [\n' +
   '      "[World Economic Forum] Public-sector bodies are expanding digital public infrastructure and putting AI into citizen-facing service delivery, raising questions about trust, transparency and government workforce capability.",\n' +
   '      "[World Economic Forum] Its latest Future of Jobs analysis flags analytical thinking, resilience and AI literacy as the skills employers expect to rise most this decade."\n' +
-  '    ]}',
+  '    ]},',
   '{ id: "bersin", name: "Josh Bersin", kind: "Industry analysts", method: "RSS feed", url: "https://joshbersin.com/", excerpts: [] },\n' +
-  '    { id: "sgnews", name: "Channel NewsAsia", kind: "Trade press", method: "RSS feed", url: "https://www.channelnewsasia.com/", excerpts: [] }'
+  '    { id: "sgnews", name: "Channel NewsAsia", kind: "Trade press", method: "RSS feed", url: "https://www.channelnewsasia.com/", excerpts: [] },'
+);
+// The pilot's cards must mirror the server engine's 8 watched sources, so the
+// demo-only extras go. (IMDA/Smart Nation and LinkedIn Economic Graph are good
+// candidates to ADD to the engine later — tracked in the Phase 2 backlog.)
+patch('csf-defaults-drop-gartner',
+  '{ id: "gartner", name: "Gartner", kind: "Industry analysts", method: "API", url: "https://www.gartner.com/", lastItem: "9 Jun 2026", excerpts: [\n' +
+  '      "[Gartner] Forecasts that a meaningful share of enterprise software will ship with embedded AI agents within two years, shifting many roles from \'doing the task\' to \'configuring and checking the agent that does it\'.",\n' +
+  '      "[Gartner] Names AI literacy and prompt/agent oversight as emerging baseline competencies it expects employers to screen for across non-technical roles, not just engineering."\n' +
+  '    ]},\n    ',
+  ''
+);
+patch('csf-defaults-drop-imda',
+  '{ id: "imda", name: "IMDA / Smart Nation Singapore", kind: "Think tanks & gov", method: "Web page", url: "https://www.imda.gov.sg/", lastItem: "11 Jun 2026", excerpts: [\n' +
+  '      "[IMDA Singapore] Expanding national AI playbooks and sovereign compute access for the public sector, with guidance that agencies build in-house capability to deploy and oversee AI rather than rely solely on external vendors."\n' +
+  '    ]},\n    ',
+  ''
+);
+patch('csf-defaults-drop-linkedin',
+  '{ id: "linkedin", name: "LinkedIn Economic Graph", kind: "Industry analysts", method: "API", url: "https://economicgraph.linkedin.com/", lastItem: "10 Jun 2026", excerpts: [\n' +
+  '      "[LinkedIn Economic Graph] The set of skills listed on the average job has churned sharply over five years, and members who add an AI-related skill see faster role mobility than peers who do not."\n' +
+  '    ]}',
+  ''
 );
 // 5) Show each source's CSF source-type on its card (ingest.js supplies the labels
 //    via window.__FI_KIND__; falls back to the entry's own kind).
@@ -212,8 +235,8 @@ patch('scan-role-steeple',
   '"You are a futures-intelligence analyst. You read external public signals and surface emerging trends relevant to the team\'s mandate \\u2014 scanning across social, technological, economic, environmental, political, legal and ethical change, not technology alone.'
 );
 patch('scan-weak-signals',
-  '"1. Identify up to 5 emerging trends present in the signals. Prefer themes supported by more than one signal. Ignore one-off vendor hype.\\n" +',
-  '"1. Identify up to 5 emerging trends present in the signals. Prefer weak signals \\u2014 surprising, discontinuous developments \\u2014 over what informed readers already know, and spread trends across different domains where the signals allow. One article can carry more than one distinct signal \\u2014 mine it fully. Two outlets covering the same event count as ONE signal. News about the reader\'s own organisation is background, not a finding. Ignore one-off vendor hype and sponsored content.\\n" +'
+  '"1. Identify up to 7 emerging trends present in the signals. Prefer themes supported by more than one signal. Ignore one-off vendor hype.\\n" +',
+  '"1. Identify up to 7 emerging trends present in the signals. Prefer weak signals \\u2014 surprising, discontinuous developments \\u2014 over what informed readers already know, and spread trends across different domains where the signals allow. One article can carry more than one distinct signal \\u2014 mine it fully. Two outlets covering the same event count as ONE signal. News about the reader\'s own organisation is background, not a finding. Ignore one-off vendor hype and sponsored content.\\n" +'
 );
 patch('scan-options-levers',
   '"   - options: 1\\u20132 short candidate next steps, framed as options NOT recommendations.\\n" +',
@@ -224,8 +247,8 @@ patch('scan-source-language',
   'or null if the signal has no code}. Never cite the same article for more than one trend. If a cited source is not in English, add the language to the label, e.g. \\"Shanghai skill list (Chinese)\\".\\n" +'
 );
 patch('scan-confidence-rubric',
-  '"   - confidence: \\"High\\", \\"Medium\\" or \\"Low\\", based on how many independent signals support it.\\n\\n" +',
-  '"   - confidence: \\"High\\" ONLY when two or more INDEPENDENT sources support it (different outlets reporting different events or evidence \\u2014 one announcement covered twice is one source); \\"Medium\\" for one strong source plus a weaker echo; \\"Low\\" for a single source, however striking. Ratings must vary with the evidence \\u2014 never give every trend the same confidence.\\n\\n" +'
+  '"   - confidence: \\"High\\", \\"Medium\\" or \\"Low\\", based on how many independent signals support it.\\n" +',
+  '"   - confidence: \\"High\\" ONLY when two or more INDEPENDENT sources support it (different outlets reporting different events or evidence \\u2014 one announcement covered twice is one source); \\"Medium\\" for one strong source plus a weaker echo; \\"Low\\" for a single source, however striking. Ratings must vary with the evidence \\u2014 never give every trend the same confidence.\\n" +'
 );
 // 11) Briefing email opens with priorities, not a survey (testers: "my director
 //     expects me to prioritise, not to ask her to").
