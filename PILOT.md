@@ -21,6 +21,17 @@ for pilot testing: each tester gets an **access code** and can set their own
      careers & hiring, green economy, care economy, digital government), the
      panel offers matching sources to add with one click; the pull refreshes
      automatically when you close the panel.
+   - **Topics I track** — list the things you watch (one per line). After each
+     scan you'll see which of them none of the surfaced trends touched — a gap
+     worth noting, and often a cue to add a source.
+4. After a scan, each card shows linked citations; a "⚠ check citations" chip
+   means an AI audit thought a cited article may not fully support that claim —
+   verify it before forwarding. The **Engine audit** link (under the header)
+   shows what the engine filtered out and how often each source gets cited.
+
+Note: a scan runs a government AI model with a hard 60-second limit. When the
+model is busy it may time out — just click **Scan** again; it usually completes
+on a second try.
 3. The source cards fill automatically from the shared scan engine. **Scan &
    interpret**, review/accept/flag the cards, then **Draft briefing email** —
    the draft is written from your persona, with linked citations per trend.
