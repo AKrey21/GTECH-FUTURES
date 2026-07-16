@@ -526,7 +526,7 @@
 "=== WHAT THE TEAM CARES ABOUT (judge relevance against this; do not invent it) ===\n" + context + "\n\n" +
 "=== SOURCE SIGNALS (use ONLY these) ===\n" + signals + "\n\n" +
 "=== TASK ===\n" +
-"1. Identify up to 7 emerging trends present in the signals. Prefer weak signals \u2014 surprising, discontinuous developments \u2014 over what informed readers already know, and spread trends across different domains where the signals allow. One article can carry more than one distinct signal \u2014 mine it fully. Two outlets covering the same event count as ONE signal. News about the reader's own organisation is background, not a finding. Ignore one-off vendor hype and sponsored content.\n" +
+"1. Identify the 5 STRONGEST emerging trends in the signals (fewer if the signals are thin). Prefer weak signals \u2014 surprising, discontinuous developments \u2014 over what informed readers already know, and spread trends across different domains where the signals allow. One article can carry more than one distinct signal \u2014 mine it fully. Two outlets covering the same event count as ONE signal. News about the reader's own organisation is background, not a finding. Ignore one-off vendor hype and sponsored content.\n" +
 "2. Classify each trend into EXACTLY ONE of these four dimensions (use the exact string): \"Future of Work\", \"Future of Tech\", \"Future of Learning\", \"Future of Government\".\n" +
 "3. For each trend write TIGHTLY \u2014 ONE short sentence per text field, no more than two:\n" +
 "   - what: what it is, in plain language.\n" +
@@ -536,13 +536,14 @@
 "   - confidence: \"High\" ONLY when two or more INDEPENDENT sources support it (different outlets reporting different events or evidence \u2014 one announcement covered twice is one source); \"Medium\" for one strong source plus a weaker echo; \"Low\" for a single source, however striking. Ratings must vary with the evidence \u2014 never give every trend the same confidence.\n" +
 "   - trajectory: one of \"Rising\", \"Emerging\", \"Steady\" or \"Cooling\" \u2014 how the signal seems to be moving.\n" +
 "   - horizon: rough time-to-relevance, one of \"0\u20131 yr\", \"1\u20133 yrs\" or \"3\u20135 yrs\".\n" +
-"   - evidence: 1\u20133 items, each {\"source\": short source label, \"quote\": a short paraphrase of the supporting signal}. Use ONLY the supplied signals; do not fabricate quotes.\n\n" +
+"" +
+(window.__FI_TOPICS__ && window.__FI_TOPICS__.length ? "=== TRACKED TOPICS ===\nThe analyst explicitly tracks: " + window.__FI_TOPICS__.join("; ") + ". Where the signals genuinely support a tracked topic, prefer it as a trend; never invent coverage that the signals do not support.\n\n" : "") +
 "=== RULES ===\n" +
 "- Use ONLY the supplied signals. Do NOT invent statistics, programme names, or facts.\n" +
 "- If unsure, say so and use Low confidence.\n" +
 "- Plain English. No buzzwords. Keep every field brief so the whole array stays compact.\n\n" +
 "=== OUTPUT ===\n" +
-"Return ONLY a JSON array, nothing else. Each element: {\"title\": string, \"dimension\": string, \"confidence\": string, \"trajectory\": string, \"horizon\": string, \"what\": string, \"why\": string, \"options\": [string], \"sources\": [{\"label\": string, \"ref\": string|null}], \"evidence\": [{\"source\": string, \"quote\": string}]}. No markdown, no commentary."
+"Return ONLY a JSON array, nothing else. Each element: {\"title\": string, \"dimension\": string, \"confidence\": string, \"trajectory\": string, \"horizon\": string, \"what\": string, \"why\": string, \"options\": [string], \"sources\": [{\"label\": string, \"ref\": string|null}]}. No markdown, no commentary."
     );
   }
 
@@ -588,6 +589,7 @@
 
   async function scan() {
     if (running) return;
+    if (window.__FI_COVERAGE_CLEAR__) { try { window.__FI_COVERAGE_CLEAR__(); } catch (e) {} }
     const context = ctxEl.value.trim();
     const signals = sigEl.value.trim();
     errEl.style.display = "none";
@@ -646,6 +648,7 @@
       renderCards(valid);
       updateMeta();
       revealBrief();
+      if (window.__FI_SCAN_DONE__) { try { window.__FI_SCAN_DONE__(valid, raw); } catch (e) {} }
     } catch (e) {
       resetPipe();
       buildColumns("No signal this scan.");

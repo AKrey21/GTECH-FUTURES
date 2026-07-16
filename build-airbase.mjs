@@ -236,7 +236,11 @@ patch('scan-role-steeple',
 );
 patch('scan-weak-signals',
   '"1. Identify up to 7 emerging trends present in the signals. Prefer themes supported by more than one signal. Ignore one-off vendor hype.\\n" +',
-  '"1. Identify up to 7 emerging trends present in the signals. Prefer weak signals \\u2014 surprising, discontinuous developments \\u2014 over what informed readers already know, and spread trends across different domains where the signals allow. One article can carry more than one distinct signal \\u2014 mine it fully. Two outlets covering the same event count as ONE signal. News about the reader\'s own organisation is background, not a finding. Ignore one-off vendor hype and sponsored content.\\n" +'
+  // Cap at 5 trends: the enriched per-trend schema (trajectory/horizon/evidence
+  // quotes) at 7 trends pushes generation past the LLM gateway's hard 60s ceiling
+  // and 504s. 5 well-evidenced trends render reliably and read better than 7 thin
+  // ones. (Signal budget + MAX_TOKENS in server.mjs tuned to match.)
+  '"1. Identify the 5 STRONGEST emerging trends in the signals (fewer if the signals are thin). Prefer weak signals \\u2014 surprising, discontinuous developments \\u2014 over what informed readers already know, and spread trends across different domains where the signals allow. One article can carry more than one distinct signal \\u2014 mine it fully. Two outlets covering the same event count as ONE signal. News about the reader\'s own organisation is background, not a finding. Ignore one-off vendor hype and sponsored content.\\n" +'
 );
 patch('scan-options-levers',
   '"   - options: 1\\u20132 short candidate next steps, framed as options NOT recommendations.\\n" +',
@@ -255,6 +259,44 @@ patch('scan-confidence-rubric',
 patch('brief-intro-priorities',
   '"- intro: exactly 2 sentences framing this month\'s read across the focus areas.\\n" +',
   '"- intro: 2\\u20133 sentences that OPEN by naming the one or two trends that matter most this cycle and why they lead, then frame the rest.\\n" +'
+);
+// 12) Phase 3 — tracked topics (CSF: absence of expected change is a signal).
+//     When the profile declares topics, gently steer the scan to prefer them
+//     where the signals support it. Coverage (which tracked topics the scan did
+//     NOT surface) is computed OFF the critical path by the post-scan audit call
+//     in ingest.js — keeping it out of the scan keeps generation under the
+//     gateway's 60s ceiling.
+patch('scan-tracked-topics',
+  '"=== RULES ===\\n" +',
+  '(window.__FI_TOPICS__ && window.__FI_TOPICS__.length ? "=== TRACKED TOPICS ===\\nThe analyst explicitly tracks: " + window.__FI_TOPICS__.join("; ") + ". Where the signals genuinely support a tracked topic, prefer it as a trend; never invent coverage that the signals do not support.\\n\\n" : "") +\n"=== RULES ===\\n" +'
+);
+// 13) Phase 3 — post-scan hook (ingest.js): source scorecard, citation-claim
+//     fit audit, and the tracked-topics coverage note.
+patch('scan-done-hook',
+  '      lastTrends = valid;\n      renderCards(valid);\n      updateMeta();\n      revealBrief();',
+  '      lastTrends = valid;\n      renderCards(valid);\n      updateMeta();\n      revealBrief();\n      if (window.__FI_SCAN_DONE__) { try { window.__FI_SCAN_DONE__(valid, raw); } catch (e) {} }'
+);
+// 13b) Clear the last scan's coverage note at the START of every scan, so a
+//      stale "no signal on X" note can't outlive a failed or demo-mode scan
+//      (the success-only scan-done hook never runs on those paths).
+patch('scan-start-clear',
+  '  async function scan() {\n    if (running) return;',
+  '  async function scan() {\n    if (running) return;\n    if (window.__FI_COVERAGE_CLEAR__) { try { window.__FI_COVERAGE_CLEAR__(); } catch (e) {} }'
+);
+// 14) Drop the per-trend `evidence` quotes from the LIVE scan. gpt-5.5 on the
+//     GovTech gateway must finish generation inside a hard 60s proxy timeout;
+//     paraphrasing evidence quotes for every trend pushed dense-signal scans
+//     past it (verified: with-evidence → 504 at 60s; without → ~39s). The
+//     clickable `sources` citations remain the evidence trail, and the card's
+//     evidence detail is guarded so it simply doesn't render. (Runs after
+//     prompt-sources-format, so it matches the {label,ref} schema text.)
+patch('drop-evidence-instruction',
+  '"   - evidence: 1\\u20133 items, each {\\"source\\": short source label, \\"quote\\": a short paraphrase of the supporting signal}. Use ONLY the supplied signals; do not fabricate quotes.\\n\\n" +',
+  '"" +'
+);
+patch('drop-evidence-schema',
+  '\\"ref\\": string|null}], \\"evidence\\": [{\\"source\\": string, \\"quote\\": string}]}. No markdown',
+  '\\"ref\\": string|null}]}. No markdown'
 );
 
 fs.writeFileSync(path.join(DIST, 'app.js'), appJs + '\n');

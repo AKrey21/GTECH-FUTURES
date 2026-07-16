@@ -11,6 +11,8 @@
   // the model can cite which article supports a claim without bloating the
   // prompt with long URLs; cards resolve the code back to the real link here.
   var LINKS = window.__FI_LINKS__ = {};
+  var REFSRC = {};   // "L3" -> source display name (feeds the scorecard)
+  var REFTEXT = {};  // "L3" -> the signal block text (feeds the citation-fit check)
   var linkSeq = 0;
 
   // Called by the (patched) card renderer for each source tag. `s` is either a
@@ -161,6 +163,121 @@
     return el ? el.textContent.replace(/↗/g, "").trim() : "";
   }
 
+  // ---- post-scan hook: coverage note, source scorecard, citation-fit audit ----
+  function refOf(s) {
+    return s && typeof s === "object" && s.ref ? String(s.ref).replace(/[\[\]\s]/g, "") : null;
+  }
+  window.__FI_SCAN_DONE__ = function (trends, raw) {
+    // Scorecard: which watched sources actually CONTRIBUTED text to this scan
+    // (a source whose pull returned nothing must not count as "scanned but never
+    // cited" — that would wrongly read as a low-value source).
+    try {
+      var present = Array.prototype.slice.call(document.querySelectorAll("#srcList .src-row"))
+        .filter(function (row) { var ta = row.querySelector(".src-text"); return ta && ta.value.trim(); })
+        .map(function (row) { var el = row.querySelector(".src-name"); return el ? el.textContent.replace(/↗/g, "").trim() : ""; })
+        .filter(Boolean);
+      var cited = [];
+      (trends || []).forEach(function (t) {
+        ((t && t.sources) || []).forEach(function (s) {
+          var src = REFSRC[refOf(s)];
+          if (src && cited.indexOf(src) === -1) cited.push(src);
+        });
+      });
+      fetch("/api/scorecard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sources: present, cited: cited })
+      }).catch(function () {});
+    } catch (e) {}
+    auditScan(trends);
+  };
+
+  // Post-scan audit (ONE compact call, off the critical scan path). Does two
+  // CSF jobs at once: (a) citation-claim fit — does each card's cited signal
+  // actually support its claim; (b) topic coverage — which of the analyst's
+  // tracked topics did none of the surfaced trends address (absence is itself a
+  // finding). Judged from the compact trend cards, so it stays fast.
+  function auditScan(trends) {
+    if (!window.claude || typeof window.claude.complete !== "function") return;
+    var items = [];
+    (trends || []).forEach(function (t, i) {
+      var evid = [];
+      ((t && t.sources) || []).forEach(function (s) {
+        var ref = refOf(s);
+        if (ref && REFTEXT[ref]) evid.push(REFTEXT[ref].slice(0, 700));
+      });
+      if (evid.length) items.push({ i: i, claim: (t.title || "") + " — " + (t.what || ""), signals: evid });
+    });
+    var topics = window.__FI_TOPICS__ || [];
+    if (!items.length && !topics.length) return;
+
+    var cardList = (trends || []).map(function (t) { return (t.title || "") + " — " + (t.what || ""); });
+    var prompt =
+      "You are auditing a horizon-scan for a Singapore skills-and-workforce analyst. Return ONLY a JSON object.\n\n" +
+      "PART A — citation fit. For each numbered item, does the cited signal genuinely support that specific claim? " +
+      "fit=false if the claim overreaches or the signal is about something else; add a short note. Judge support, not importance.\n" +
+      "items: " + JSON.stringify(items) + "\n\n" +
+      "PART B — topic coverage. Here are the analyst's tracked topics and the titles of the trends this scan surfaced. " +
+      "List the tracked topics that NONE of the surfaced trends meaningfully address.\n" +
+      "topics: " + JSON.stringify(topics) + "\n" +
+      "surfacedTrends: " + JSON.stringify(cardList) + "\n\n" +
+      'Reply with ONLY: {"fits":[{"i":0,"fit":true,"note":""}],"emptyTopics":[<tracked topics not addressed>]}. No other text.';
+
+    window.claude.complete({ messages: [{ role: "user", content: prompt }] }).then(function (raw) {
+      var obj = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
+      (obj.fits || []).forEach(function (v) {
+        if (!v || v.fit !== false) return;
+        var card = document.querySelector('#columns article.card[data-idx="' + v.i + '"]');
+        var host = card && card.querySelector(".sources");
+        if (host && !host.querySelector(".fi-misfit")) {
+          var w = document.createElement("span");
+          w.className = "fi-misfit";
+          w.title = (v.note || "A cited article may not support this claim") + " — verify before forwarding.";
+          w.textContent = "⚠ check citations";
+          host.appendChild(w);
+        }
+      });
+      if (topics.length && window.__FI_COVERAGE__) window.__FI_COVERAGE__(obj.emptyTopics || []);
+    }).catch(function () { /* audit is best-effort */ });
+  }
+
+  // ---- engine audit modal: source scorecard + the triage discard pile ----
+  function showAudit() {
+    var veil = document.createElement("div");
+    veil.className = "fi-veil";
+    var card = document.createElement("div");
+    card.className = "fi-card";
+    card.style.maxHeight = "80vh";
+    card.style.overflowY = "auto";
+    card.innerHTML = '<h3>Engine audit</h3><p class="fi-sub">Loading…</p>';
+    veil.appendChild(card);
+    veil.addEventListener("click", function (e) { if (e.target === veil) veil.remove(); });
+    document.body.appendChild(veil);
+    fetch("/api/store?audit=1").then(function (r) { return r.json(); }).then(function (d) {
+      var esc = function (s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
+      var sc = Object.keys(d.scorecard || {}).map(function (k) { return { name: k, s: d.scorecard[k] }; })
+        .sort(function (a, b) { return (b.s.cited || 0) - (a.s.cited || 0); });
+      var html = '<h3>Engine audit</h3>';
+      html += '<p class="fi-sub">Source scorecard — how often each source\'s articles are cited in scans.</p>';
+      html += sc.length
+        ? '<table class="fi-table">' + sc.map(function (r) {
+            return '<tr><td>' + esc(r.name) + '</td><td>' + (r.s.cited || 0) + ' cited / ' + (r.s.scans || 0) + ' scans</td></tr>';
+          }).join('') + '</table>'
+        : '<p class="fi-sub">No scans recorded yet this deployment.</p>';
+      html += '<p class="fi-sub" style="margin-top:14px">Filtered out by triage — rejected as routine or off-mission (CSF: the discard pile stays auditable).</p>';
+      html += (d.discards && d.discards.length)
+        ? '<ul class="fi-discards">' + d.discards.map(function (x) {
+            return '<li>[' + esc(x.source) + '] ' + (x.link ? '<a href="' + esc(x.link) + '" target="_blank" rel="noopener">' + esc(x.title) + '</a>' : esc(x.title)) + '</li>';
+          }).join('') + '</ul>'
+        : '<p class="fi-sub">Nothing rejected yet.</p>';
+      html += '<div class="fi-row"><span class="fi-spacer"></span><button class="fi-btn ghost" id="fiAuditClose" type="button">Close</button></div>';
+      card.innerHTML = html;
+      card.querySelector("#fiAuditClose").addEventListener("click", function () { veil.remove(); });
+    }).catch(function () {
+      card.innerHTML = '<h3>Engine audit</h3><p class="fi-sub">Could not load the audit view.</p>';
+    });
+  }
+
   // The header's cadence line ("Last run … · Next scheduled …") reflects the
   // scan engine's real schedule: it ingests server-side daily; the page just
   // reads the engine's memory.
@@ -171,7 +288,14 @@
     if (!meta) return;
     var last = lastPullMs ? fmtDate(new Date(lastPullMs)) : "—";
     var next = fmtDate(new Date((lastPullMs || Date.now()) + 24 * 3600e3));
-    meta.innerHTML = "Last run <b>" + last + "</b> · Next scheduled <b>" + next + "</b>";
+    meta.innerHTML = "Last run <b>" + last + "</b> · Next scheduled <b>" + next + "</b> · ";
+    var a = document.createElement("a");
+    a.href = "#";
+    a.className = "fi-audit";
+    a.textContent = "Engine audit";
+    a.title = "What the engine filtered out, and how each source performs in scans";
+    a.addEventListener("click", function (e) { e.preventDefault(); showAudit(); });
+    meta.appendChild(a);
   }
   function shortDate(ms) { var d = new Date(ms); return d.getDate() + " " + MONTHS[d.getMonth()]; }
 
@@ -189,7 +313,15 @@
       ".eml-srcs{display:block;margin-top:3px;font-size:11.5px;color:#5c6b5f;}" +
       ".eml-srcs a{color:#3e5c46;text-decoration:none;border-bottom:1px dotted #9db3a2;}" +
       ".eml-srcs a:hover{border-bottom-style:solid;}" +
-      ".eml-foot{font-size:11.5px;color:#5c6b5f;margin-top:10px;}";
+      ".eml-foot{font-size:11.5px;color:#5c6b5f;margin-top:10px;}" +
+      ".fi-audit{color:#3e5c46;text-decoration:none;border-bottom:1px dotted #9db3a2;cursor:pointer;}" +
+      ".fi-audit:hover{border-bottom-style:solid;}" +
+      ".fi-misfit{color:#a04b3c;background:#f7e9e4;border:1px solid #e5c8bc;border-radius:9px;padding:1px 8px;font-size:11px;margin-left:6px;white-space:nowrap;cursor:help;}" +
+      ".fi-table{width:100%;border-collapse:collapse;font-size:12.5px;}" +
+      ".fi-table td{padding:4px 6px;border-bottom:1px solid #e4e7da;}" +
+      ".fi-discards{font-size:12px;color:#5c6b5f;padding-left:18px;max-height:220px;overflow-y:auto;margin:6px 0;}" +
+      ".fi-discards a{color:#3e5c46;}" +
+      ".fi-coverage{background:#faf3e3;border:1px solid #e6d3ac;border-radius:10px;padding:10px 14px;font-size:13px;color:#6b5a33;margin:10px 0;}";
     document.head.appendChild(st);
 
     // Clone to drop the app's original (paste-only) click handler, then own it.
@@ -249,16 +381,19 @@
         if (ta && items && items.length) {
           ta.value = items.map(function (it) {
             var detail = it.body || it.detail || it.summary;
-            var ref = "";
+            var ref = "", code = null;
             if (it.link) {
-              var code = "L" + (++linkSeq);
+              code = "L" + (++linkSeq);
               LINKS[code] = it.link;
+              REFSRC[code] = name;
               ref = " [" + code + "]";
             }
             // CSF corroboration: recurring signals carry their track record so
             // the model can weigh multi-cycle evidence.
             var seen = it.timesSeen > 1 ? " (seen " + it.timesSeen + "× since " + shortDate(it.firstSeen) + ")" : "";
-            return "[" + name + "] " + it.title + (detail ? " — " + detail : "") + seen + ref;
+            var block = "[" + name + "] " + it.title + (detail ? " — " + detail : "") + seen + ref;
+            if (code) REFTEXT[code] = block;
+            return block;
           }).join("\n\n");
           ta.dispatchEvent(new Event("input", { bubbles: true })); // update app state + item count
           pulled += items.length;
@@ -266,12 +401,14 @@
         if (ta && ta.value.trim()) all.push(ta.value.trim());
       });
 
-      // Signal budget: the LLM gateway 504s at 60s of generation; with the
-      // enriched 7-trend output the prompt must stay ≤ ~22k chars (verified:
-      // 25.3k → 504, 23.3k → ok). Trim the longest sources' oldest items until
-      // the combined pull fits. Cards keep their full text — only the
-      // assembled scan input is trimmed.
-      var BUDGET = 18000;
+      // Signal budget: input + generation must finish inside the GovTech
+      // gateway's hard 60s proxy timeout. gpt-5.5 latency is highly variable and
+      // load-dependent (same task measured 39s when the gateway is quiet, >60s
+      // when congested), so keep a margin here; when the gateway is congested no
+      // budget beats 60s and the app asks for a retry. Trim the longest sources'
+      // oldest items until the pull fits; cards keep full text, only the scan
+      // input is cut.
+      var BUDGET = 10000;
       var blocks = all.map(function (t) { return t.split("\n\n"); });
       function totalLen() { return blocks.reduce(function (a, b) { return a + b.join("\n\n").length + 2; }, 0); }
       while (totalLen() > BUDGET) {

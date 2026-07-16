@@ -121,6 +121,7 @@
   function signedIn(data) {
     profile = data;
     window.__FI_USER__ = { name: data.displayName };
+    window.__FI_TOPICS__ = data.topics || [];
     // Keep the on-page mandate box coherent with the persona: replace it when it
     // holds the untouched built-in default OR the persona we last auto-filled
     // (so changing your persona mid-session updates it too). Hand edits are
@@ -167,6 +168,15 @@
     card.appendChild(el("div", "fi-hint",
       "Describe who the analyst is, which organisation and readers the briefing serves, and what counts as relevant. " +
       "The CSF scanning method (weak signals, corroboration, What → So What → Now What) and output rules stay fixed."));
+
+    card.appendChild(el("label", "", "Topics I track (one per line)"));
+    var taT = el("textarea");
+    taT.style.minHeight = "64px";
+    taT.value = (profile.topics || []).join("\n");
+    taT.placeholder = "e.g. AI resume screening\nmature worker reskilling";
+    card.appendChild(taT);
+    card.appendChild(el("div", "fi-hint",
+      "Every scan reports which tracked topics had NO supporting signal this cycle — absence of expected change is itself a finding."));
 
     // Persona-tuned source packs (defined in ingest.js): sources matched to the
     // persona text, one click to add. Recomputed as the persona is edited.
@@ -253,7 +263,11 @@
       fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName: nameIn.value, persona: personaOut })
+        body: JSON.stringify({
+          displayName: nameIn.value,
+          persona: personaOut,
+          topics: taT.value.split("\n").map(function (t) { return t.trim(); }).filter(Boolean)
+        })
       }).then(function (res) {
         if (!res.ok) throw new Error("save failed");
         return res.json();
@@ -268,6 +282,37 @@
       });
     });
   }
+
+  // Clear the coverage note (called at scan START via the patched scan flow, so
+  // a stale note can't survive a failed or demo-mode scan that never reaches the
+  // scan-done hook).
+  window.__FI_COVERAGE_CLEAR__ = function () {
+    var old = document.getElementById("fiCoverage");
+    if (old) old.remove();
+  };
+
+  // Coverage note (called by ingest.js's post-scan audit): emptyTopics is the
+  // list of tracked topics that none of the surfaced trends addressed.
+  window.__FI_COVERAGE__ = function (emptyTopics) {
+    window.__FI_COVERAGE_CLEAR__();
+    var topics = window.__FI_TOPICS__ || [];
+    if (!topics.length) return;
+    // Keep only genuinely-tracked topics (defend against the model echoing junk).
+    var empty = (emptyTopics || []).filter(function (t) {
+      return topics.some(function (x) { return x.toLowerCase() === String(t).toLowerCase(); });
+    });
+    var note = document.createElement("div");
+    note.id = "fiCoverage";
+    note.className = "fi-coverage";
+    if (!empty.length) {
+      note.textContent = "Tracked topics: all " + topics.length + " were addressed by this cycle's trends.";
+    } else {
+      note.textContent = "No trend this cycle on: " + empty.join(" · ") +
+        " — absence of expected change can itself be a signal (CSF). Consider adding sources for these topics.";
+    }
+    var cols = document.getElementById("columns");
+    if (cols) cols.insertAdjacentElement("beforebegin", note);
+  };
 
   // --- boot: probe the server; open mode shows nothing ---
   function boot() {

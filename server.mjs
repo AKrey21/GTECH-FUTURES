@@ -21,8 +21,10 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 // GovTech AI Studio "Models" — OpenAI-compatible gateway. Overridable via env.
 const LLM_URL = process.env.LLM_URL || 'https://api.ai.tech.gov.sg/platform/models/v1/chat/completions';
 const MODEL = process.env.LLM_MODEL || 'gpt-5.5';
-// Headroom for the enriched scan output (up to 7 trends with evidence quotes).
-const MAX_TOKENS = parseInt(process.env.MAX_TOKENS || '6000', 10);
+// Scan output = up to 5 enriched trends with evidence quotes. Capped so a full
+// generation finishes inside the gateway's hard 60s ceiling (6000 tokens of
+// 7-trend output 504'd; 4500 for 5 trends completes with margin).
+const MAX_TOKENS = parseInt(process.env.MAX_TOKENS || '4500', 10);
 const KEY = process.env.LLM_API_KEY || process.env.ANTHROPIC_API_KEY || '';
 
 // The system prompt has two parts: an EDITABLE persona (who the analyst is, who
@@ -154,6 +156,11 @@ async function handleComplete(req, res) {
 
   const data = await apiRes.json().catch(() => null);
   if (!apiRes.ok) {
+    // 502/504 from the gateway mean the model was too slow under load — give
+    // testers an actionable message rather than a raw status code.
+    if (apiRes.status === 504 || apiRes.status === 502) {
+      return sendJSON(res, apiRes.status, { error: 'the model is busy right now — please run the scan again in a moment' });
+    }
     const msg = (data && data.error && data.error.message) || ('gateway error ' + apiRes.status);
     return sendJSON(res, apiRes.status, { error: msg });
   }
@@ -386,9 +393,10 @@ function saveProfiles() {
     fs.renameSync(PROFILES_PATH + '.tmp', PROFILES_PATH);
   } catch (e) { console.error('profiles save failed:', e.message); }
 }
+const TOPICS_MAX = 10, TOPIC_LEN = 80;
 function profileView(user) {
   const p = profiles[user] || {};
-  return { user, displayName: p.displayName || user, persona: p.persona || '', personaDefault: PERSONA_DEFAULT };
+  return { user, displayName: p.displayName || user, persona: p.persona || '', topics: p.topics || [], personaDefault: PERSONA_DEFAULT };
 }
 async function handleProfile(req, res) {
   if (!PILOT.size) return sendJSON(res, 200, { user: null, displayName: '', persona: '', personaDefault: PERSONA_DEFAULT });
@@ -404,6 +412,9 @@ async function handleProfile(req, res) {
   // line, where an interior newline would break the .eml header block.
   if (typeof body.displayName === 'string') next.displayName = body.displayName.replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
   if (typeof body.persona === 'string') next.persona = body.persona.trim().slice(0, PERSONA_MAX);
+  if (Array.isArray(body.topics)) {
+    next.topics = body.topics.map(t => String(t).replace(/\s+/g, ' ').trim().slice(0, TOPIC_LEN)).filter(Boolean).slice(0, TOPICS_MAX);
+  }
   next.updated = Date.now();
   profiles[user] = next;
   saveProfiles();
@@ -429,6 +440,7 @@ async function handleImport(req, res) {
     profiles[name] = {
       displayName: String((p && p.displayName) || name).replace(/\s+/g, ' ').trim().slice(0, NAME_MAX),
       persona: String((p && p.persona) || '').trim().slice(0, PERSONA_MAX),
+      topics: Array.isArray(p && p.topics) ? p.topics.map(t => String(t).replace(/\s+/g, ' ').trim().slice(0, TOPIC_LEN)).filter(Boolean).slice(0, TOPICS_MAX) : [],
       updated: Date.now(),
     };
     restored++;
@@ -582,7 +594,49 @@ function storeView() {
   }));
   return { lastPull: store.meta.lastPull, total: Object.keys(store.signals).length, sources };
 }
+// CSF: scanning must be auditable. The audit view exposes what triage rejected
+// (the discard pile) and how each source performs at scan time (the scorecard,
+// fed by POST /api/scorecard after every scan).
+function auditView() {
+  const discards = Object.values(store.signals)
+    .filter(s => s.triage && s.triage.keep === false)
+    .sort((a, b) => b.lastSeen - a.lastSeen)
+    .slice(0, 50)
+    .map(s => ({ source: s.source, title: s.title, link: s.link, domain: s.triage.domain, novelty: s.triage.novelty }));
+  return { discards, scorecard: store.meta.scorecard || {} };
+}
+async function handleScorecard(req, res) {
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'x';
+  const user = authUser(req);
+  if (PILOT.size && !user) return sendJSON(res, 401, { error: 'sign in with your access code' });
+  if (rateLimited(user || ip)) return sendJSON(res, 429, { error: 'rate limit — try again shortly' });
+  let raw = '';
+  for await (const c of req) { raw += c; if (raw.length > 20_000) return sendJSON(res, 413, { error: 'body too large' }); }
+  let body;
+  try { body = JSON.parse(raw); } catch { return sendJSON(res, 400, { error: 'invalid JSON' }); }
+  const sc = store.meta.scorecard = store.meta.scorecard || {};
+  const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  const bump = (name, field) => {
+    name = String(name).slice(0, 60);
+    // hasOwnProperty (not truthiness) so "__proto__"/"constructor" can't reach
+    // Object.prototype — bare `sc[name]` on those keys pollutes every object.
+    if (name === '__proto__' || name === 'constructor' || name === 'prototype') return;
+    if (!has(sc, name)) {
+      if (Object.keys(sc).length > 100) return;   // bounded map; fixed the old !sc[name] cap bug
+      sc[name] = { scans: 0, cited: 0 };
+    }
+    const row = sc[name];
+    row[field]++;
+    if (field === 'cited') row.lastCited = Date.now();
+  };
+  (Array.isArray(body.sources) ? body.sources.slice(0, 30) : []).forEach(n => bump(n, 'scans'));
+  (Array.isArray(body.cited) ? body.cited.slice(0, 30) : []).forEach(n => bump(n, 'cited'));
+  saveStore();
+  return sendJSON(res, 200, { ok: true });
+}
+
 async function handleStore(req, res, qs) {
+  if (/(^|&)audit=1/.test(qs)) return sendJSON(res, 200, auditView());
   if (/(^|&)refresh=1/.test(qs) && Date.now() - (store.meta.lastPull || 0) > 10 * 60e3) await runIngestion(true);
   else if (!store.meta.lastPull) await runIngestion(true);   // cold store: first visit warms it
   else if (ingesting) await ingesting;                        // mid-ingestion: wait for fresh data
@@ -638,6 +692,10 @@ const server = http.createServer((req, res) => {
   if (route === '/api/import') {
     if (req.method !== 'POST') return sendJSON(res, 405, { error: 'POST only' });
     return safely(handleImport(req, res), res);
+  }
+  if (route === '/api/scorecard') {
+    if (req.method !== 'POST') return sendJSON(res, 405, { error: 'POST only' });
+    return safely(handleScorecard(req, res), res);
   }
   if (route === '/api/export') {
     if (req.method !== 'GET') return sendJSON(res, 405, { error: 'GET only' });
