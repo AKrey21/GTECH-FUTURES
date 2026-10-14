@@ -12,6 +12,7 @@
   // prompt with long URLs; cards resolve the code back to the real link here.
   var LINKS = window.__FI_LINKS__ = {};
   var REFSRC = {};   // "L3" -> source display name (feeds the scorecard)
+  var LINKCODE = {}; // article URL -> "L3" (lets thread headers cite members)
   var REFTEXT = {};  // "L3" -> the signal block text (feeds the citation-fit check)
   var REFPUB = {};   // "L3" -> publisher group (feeds the corroboration check)
   var REFISSUE = {}; // "L3" -> issue-ledger entry the signal belongs to, if any
@@ -114,7 +115,7 @@
     "arXiv (Computers & Society)": { feed: "https://rss.arxiv.org/rss/cs.CY", csf: "Journals · research findings" },
     "Ethan Mollick":               { feed: "https://www.oneusefulthing.org/feed", csf: "Self-publishing · fringe thinkers" },
     "Singapore skills policy":     { query: 'Singapore (SkillsFuture OR "Workforce Singapore" OR "Ministry of Manpower") (skills OR jobs OR training OR workforce) (site:channelnewsasia.com OR site:straitstimes.com OR site:businesstimes.com.sg OR site:gov.sg) when:90d', csf: "Government & policy · STEEPLE: political" },
-    "Chinese tech & jobs press":   { query: '人工智能 就业 技能', lang: "zh", csf: "Different languages · 中文" },
+    "Chinese tech & jobs press":   { query: '就业 技能 培训', lang: "zh", csf: "Different languages · 中文" },
     "Josh Bersin":                 { feed: "https://joshbersin.com/feed/", csf: "Analysts & consultancies" },
     "Channel NewsAsia":            { feed: "https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml", csf: "Trade press · Singapore lens" },
     // Curated catalog — add any of these by name and it pulls real content.
@@ -144,6 +145,19 @@
     "Singapore care workforce":    { query: 'Singapore (nurses OR "healthcare workforce" OR eldercare OR "community care") (manpower OR skills OR training OR jobs) when:90d', csf: "Government & policy · care economy" },
     "Singapore retail & F&B jobs": { query: 'Singapore (retail OR "food services" OR "F&B") (manpower OR hiring OR automation OR "self-checkout" OR robots OR wages) when:90d', csf: "Trade press · Singapore sectors" },
     "IEA (energy & jobs)":         { query: 'site:iea.org (jobs OR skills OR workforce OR employment OR "energy transition") when:180d', csf: "Think tanks & gov · STEEPLE: environmental" },
+    // Phase-1 defensible watchlist additions (2026-10-05, feeds verified)
+    "Straits Times (Singapore)":     { feed: "https://www.straitstimes.com/news/singapore/rss.xml", csf: "Press · Singapore" },
+    "Nikkei Asia":                   { feed: "https://asia.nikkei.com/rss/feed/nar", csf: "Press · East Asia (English)" },
+    "UK Government Office for Science": { feed: "https://www.gov.uk/government/organisations/government-office-for-science.atom", csf: "Government foresight" },
+    "ILO":                           { query: 'site:ilo.org (employment OR skills OR "future of work" OR labour) when:180d', csf: "Multilateral · labour" },
+    "MOM (Singapore)":               { query: 'site:mom.gov.sg (employment OR workforce OR skills OR retrenchment OR wages) when:90d', csf: "Government & policy" },
+    "Institute for Adult Learning":  { query: '"Institute for Adult Learning" Singapore', csf: "Research institute · CET" },
+    "Centre for Strategic Futures":  { query: '"Centre for Strategic Futures" OR site:csf.gov.sg', csf: "Government foresight · PMO" },
+    // Language lenses (CSF p.136: "look up your topic in different languages")
+    "Japanese work & ageing press":  { query: 'リスキリング 高齢者 雇用', lang: "ja", csf: "Different languages · 日本語 · ageing workforce" },
+    "Korean skills & ageing press":  { query: '직업훈련 고령화 일자리', lang: "ko", csf: "Different languages · 한국어 · ageing workforce" },
+    "German vocational press":       { query: 'Ausbildung Fachkräftemangel Weiterbildung', lang: "de", csf: "Different languages · Deutsch · vocational systems" },
+    "Bahasa jobs & training press":  { query: 'pelatihan vokasi keterampilan tenaga kerja', lang: "id", csf: "Different languages · Bahasa · ASEAN labour" },
 
     // ---- Catalog expansion (2026-10): sorted by the CSF handbook's source types (Section 3b),
     // Singapore -> Regional -> Global within each. See SOURCES.md for the why, the STEEPLE tags
@@ -636,7 +650,7 @@
       "surfacedTrends: " + JSON.stringify(cardList) + "\n\n" +
       'Reply with ONLY: {"fits":[{"i":0,"fit":true,"note":""}],"emptyTopics":[<tracked topics not addressed>]}. No other text.';
 
-    window.claude.complete({ messages: [{ role: "user", content: prompt }] }).then(function (raw) {
+    window.claude.complete({ messages: [{ role: "user", content: prompt }], schema: "audit", purpose: "audit" }).then(function (raw) {
       var obj = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
       (obj.fits || []).forEach(function (v) {
         if (!v || v.fit !== false) return;
@@ -666,7 +680,9 @@
     veil.appendChild(card);
     veil.addEventListener("click", function (e) { if (e.target === veil) veil.remove(); });
     document.body.appendChild(veil);
-    fetch("/api/store?audit=1").then(function (r) { return r.json(); }).then(function (d) {
+    var metricsP = fetch("/api/metrics?window=7d").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    Promise.all([fetch("/api/store?audit=1").then(function (r) { return r.json(); }), metricsP]).then(function (both) {
+      var d = both[0], mx = both[1];
       var esc = function (s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
       var sc = Object.keys(d.scorecard || {}).map(function (k) { return { name: k, s: d.scorecard[k] }; })
         .sort(function (a, b) { return (b.s.cited || 0) - (a.s.cited || 0); });
@@ -674,7 +690,11 @@
       html += '<p class="fi-sub">Source scorecard — how often each source\'s articles are cited in scans.</p>';
       html += sc.length
         ? '<table class="fi-table">' + sc.map(function (r) {
-            return '<tr><td>' + esc(r.name) + '</td><td>' + (r.s.cited || 0) + ' cited / ' + (r.s.scans || 0) + ' scans</td></tr>';
+            // Weeding hint (CSF: prune sources that never earn citations) — the
+            // machine nominates, the analyst decides what to swap in.
+            var weed = (r.s.scans || 0) >= 8 && !(r.s.cited || 0)
+              ? ' <span class="fi-weed">never cited — consider swapping for a same-type source</span>' : '';
+            return '<tr><td>' + esc(r.name) + '</td><td>' + (r.s.cited || 0) + ' cited / ' + (r.s.scans || 0) + ' scans' + weed + '</td></tr>';
           }).join('') + '</table>'
         : '<p class="fi-sub">No scans recorded yet this deployment.</p>';
       var ck = d.checks || {};
@@ -688,12 +708,29 @@
               (x.links && x.links.length ? '<br>' + x.links.map(function (l) { return l.link ? '<a href="' + esc(l.link) + '" target="_blank" rel="noopener">' + esc(l.source) + '</a>' : esc(l.source); }).join(' · ') : '') + '</li>';
           }).join('') + '</ul>'
         : '<p class="fi-sub">No issues yet — the ledger fills as daily pulls are clustered.</p>';
+      if (d.reviews && d.reviews.length) {
+        html += '<p class="fi-sub" style="margin-top:14px">Recent analyst verdicts (Accept / Flag, recorded).</p>';
+        html += '<table class="fi-table">' + d.reviews.map(function (r) {
+          var when = new Date(r.t);
+          return '<tr><td>' + (r.verdict === 'accept' ? '✓' : '⚠') + ' ' + esc(r.verdict) + '</td><td>' + esc(r.title) + '</td><td>' + when.getDate() + '/' + (when.getMonth() + 1) + '</td></tr>';
+        }).join('') + '</table>';
+      }
       html += '<p class="fi-sub" style="margin-top:14px">Filtered out by triage — rejected as routine or off-mission (CSF: the discard pile stays auditable).</p>';
       html += (d.discards && d.discards.length)
         ? '<ul class="fi-discards">' + d.discards.map(function (x) {
             return '<li>[' + esc(x.source) + '] ' + (x.link ? '<a href="' + esc(x.link) + '" target="_blank" rel="noopener">' + esc(x.title) + '</a>' : esc(x.title)) + '</li>';
           }).join('') + '</ul>'
         : '<p class="fi-sub">Nothing rejected yet.</p>';
+      // Injection quarantine: scraped text the guard neutralised before it
+      // could reach a prompt. The signal stays in the scan minus the payload.
+      if (d.quarantine && d.quarantine.length) {
+        html += '<p class="fi-sub" style="margin-top:14px">Prompt-injection guard — instruction-like text neutralised in these articles before any model saw it.</p>';
+        html += '<ul class="fi-discards">' + d.quarantine.map(function (x) {
+          return '<li>[' + esc(x.source) + '] ' + (x.link ? '<a href="' + esc(x.link) + '" target="_blank" rel="noopener">' + esc(x.title) + '</a>' : esc(x.title)) +
+            ' <span class="fi-weed">' + esc(x.kinds.join(", ")) + '</span></li>';
+        }).join('') + '</ul>';
+      }
+      if (mx && mx.overall) html += metricsHtml(mx, esc);
       html += '<div class="fi-row"><span class="fi-spacer"></span><button class="fi-btn ghost" id="fiAuditClose" type="button">Close</button></div>';
       card.innerHTML = html;
       card.querySelector("#fiAuditClose").addEventListener("click", function () { veil.remove(); });
@@ -701,6 +738,62 @@
       card.innerHTML = '<h3>Engine audit</h3><p class="fi-sub">Could not load the audit view.</p>';
     });
   }
+
+  // LLM telemetry panel (server: /api/metrics). Answers the operational
+  // questions — what a scan costs, how slow p95 is, how often the model's JSON
+  // holds its schema, how many invented citations were caught.
+  function metricsHtml(mx, esc) {
+    var o = mx.overall, bp = mx.byPurpose || {};
+    var pctS = function (x) { return x == null ? "—" : Math.round(x * 1000) / 10 + "%"; };
+    var secs = function (ms) { return ms == null ? "—" : (ms / 1000).toFixed(1) + "s"; };
+    var tok = function (n) { return n == null ? "—" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "k" : String(n); };
+    var usd = function (x) { return x == null ? "unpriced" : "$" + x.toFixed(x < 1 ? 4 : 2); };
+    var rows = [];
+    rows.push(["Model calls", o.calls + " (" + pctS(o.errorRate) + " errors" + (o.fallbacks ? ", " + o.fallbacks + " congestion fallbacks" : "") + ")"]);
+    if (bp.scan) rows.push(["Scan latency", "p50 " + secs(bp.scan.p50ms) + " · p95 " + secs(bp.scan.p95ms) + " (gateway limit 60s)"]);
+    if (mx.perScan) rows.push(["Per scan", tok(mx.perScan.avgInTok) + " in / " + tok(mx.perScan.avgOutTok) + " out tokens · " + usd(mx.perScan.avgCostUsd)]);
+    rows.push(["Tokens (7 days)", tok(o.inTok) + " in / " + tok(o.outTok) + " out · " + usd(o.costUsd) + (o.estimatedTokens ? " · " + o.estimatedTokens + " calls estimated" : "")]);
+    if (o.schema) {
+      rows.push(["Schema conformance", pctS(o.schema.firstPassRate) + " first pass → " + pctS(o.schema.finalRate) + " after coercion/repair" +
+        " (" + o.schema.repaired + " repairs, " + o.schema.repairOk + " succeeded; " + o.schema.droppedItems + " malformed items dropped)"]);
+    }
+    if (o.grounding) rows.push(["Citation grounding", o.grounding.ungroundedRefs + " invented [L#] codes caught of " + o.grounding.citedRefs + " cited (" + pctS(o.grounding.groundedRate) + " grounded)"]);
+    rows.push(["Injection guard", (o.injectionHits || 0) + " hits in prompts sent"]);
+    if (o.truncated) rows.push(["Truncated outputs", o.truncated + " hit the token cap (salvaged where possible)"]);
+    var html = '<p class="fi-sub" style="margin-top:14px">LLM telemetry — last 7 days.</p>';
+    html += '<table class="fi-table">' + rows.map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td></tr>'; }).join('') + '</table>';
+    var keys = Object.keys(bp).sort(function (a, b) { return bp[b].calls - bp[a].calls; });
+    if (keys.length) {
+      html += '<table class="fi-table" style="margin-top:8px"><tr><td><b>Call</b></td><td><b>Calls</b></td><td><b>Err</b></td><td><b>p50 / p95</b></td><td><b>Tokens in/out</b></td><td><b>Cost</b></td></tr>' +
+        keys.map(function (k) {
+          var x = bp[k];
+          return '<tr><td>' + esc(k) + '</td><td>' + x.calls + '</td><td>' + pctS(x.errorRate) + '</td><td>' + secs(x.p50ms) + ' / ' + secs(x.p95ms) +
+            '</td><td>' + tok(x.inTok) + ' / ' + tok(x.outTok) + '</td><td>' + usd(x.costUsd) + '</td></tr>';
+        }).join('') + '</table>';
+    }
+    if (!mx.priced || !mx.priced.length) html += '<p class="fi-sub">Costs show once the gateway\'s per-model rates are set (LLM_PRICES).</p>';
+    return html;
+  }
+
+  // Persist Accept/Flag verdicts (CSF: the review step should leave a record).
+  // Delegated listener so the app's own card buttons keep working untouched;
+  // fire-and-forget — a failed save never blocks the analyst's flow.
+  document.addEventListener("click", function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest("button") : null;
+    if (!btn || !btn.closest("#columns")) return;
+    var txt = (btn.textContent || "").trim();
+    var verdict = /Accept/.test(txt) ? "accept" : /Flag/.test(txt) ? "flag" : "";
+    if (!verdict) return;
+    var card = btn.closest(".card");
+    var h = card && card.querySelector("h1,h2,h3,h4,.ttl,.card-title");
+    var title = h && h.textContent ? h.textContent.trim() : "";
+    if (!title) return;
+    fetch("/api/review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: title, verdict: verdict })
+    }).catch(function () {});
+  });
 
   // The header's cadence line ("Last run … · Next scheduled …") reflects the
   // scan engine's real schedule: it ingests server-side daily; the page just
@@ -722,6 +815,35 @@
     meta.appendChild(a);
   }
   function shortDate(ms) { var d = new Date(ms); return d.getDate() + " " + MONTHS[d.getMonth()]; }
+
+  // STEEPLE coverage strip (CSF breadth check): share of this cycle's kept
+  // signals per domain, from the engine's triage tags. Empty categories are
+  // scanning blind spots and are called out, not hidden.
+  var STEEPLE = ["Social", "Technological", "Economic", "Environmental", "Political", "Legal", "Ethical"];
+  function renderSteeple(domains) {
+    var total = 0;
+    STEEPLE.forEach(function (c) { total += domains[c] || 0; });
+    var meta = document.querySelector(".cad-meta");
+    if (!meta || !total) return;
+    var el = document.getElementById("fiSteeple");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "fiSteeple";
+      el.className = "fi-steeple";
+      meta.insertAdjacentElement("afterend", el);
+    }
+    var missing = [];
+    el.innerHTML = "Coverage " + STEEPLE.map(function (c) {
+      var n = domains[c] || 0;
+      var pct = Math.round(100 * n / total);
+      if (!n) missing.push(c);
+      return '<span class="' + (n ? "" : "fi-st0") + '" title="' + c + ': ' + n + ' kept signal' + (n === 1 ? '' : 's') + ' this fortnight">' + c.slice(0, 4) + " " + pct + "%</span>";
+    }).join(" · ");
+    el.title = missing.length
+      ? "No kept signals this fortnight in: " + missing.join(", ") + " — a blind spot to scan for (STEEPLE breadth check)"
+      : "All seven STEEPLE domains have signals this fortnight";
+  }
+
 
   function wire() {
     var btn = document.getElementById("sampleBtn");
@@ -751,8 +873,44 @@
       ".fi-issue{cursor:help;}" +
       ".fi-issues{font-size:12px;color:#2d3a31;padding-left:18px;max-height:260px;overflow-y:auto;margin:6px 0;}" +
       ".fi-issues li{margin:5px 0;} .fi-issues a{color:#3e5c46;}" +
-      ".fi-coverage{background:#faf3e3;border:1px solid #e6d3ac;border-radius:10px;padding:10px 14px;font-size:13px;color:#6b5a33;margin:10px 0;}";
+      ".fi-coverage{background:#faf3e3;border:1px solid #e6d3ac;border-radius:10px;padding:10px 14px;font-size:13px;color:#6b5a33;margin:10px 0;}" +
+      ".fi-model{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c6b5f;margin-left:auto;}" +
+      ".fi-model select{border:1px solid #c9cfba;border-radius:8px;padding:5px 8px;font:inherit;font-size:12.5px;background:#fff;color:#2d3a31;cursor:pointer;max-width:250px;}" +
+      ".fi-weed{color:#a04b3c;font-size:11.5px;}" +
+      ".fi-steeple{font-size:11.5px;color:#5c6b5f;margin-top:3px;cursor:default;}" +
+      ".fi-steeple .fi-st0{color:#a04b3c;font-weight:600;}";
     document.head.appendChild(st);
+
+    // --- model picker: which AI model runs scans/drafts, user-selectable ---
+    // Options come from /api/models (the server's curated catalog); the choice
+    // persists per-browser and rides every engine call via window.__FI_MODEL__
+    // ("" = follow the server default, mirroring how personas track the default).
+    try { window.__FI_MODEL__ = localStorage.getItem("fi_model") || ""; } catch (e) { window.__FI_MODEL__ = ""; }
+    fetch("/api/models").then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
+      if (!data || !data.models || !data.models.length) return;
+      var actions = document.querySelector(".actions");
+      if (!actions || document.getElementById("fiModel")) return;
+      if (!data.models.some(function (m) { return m.id === window.__FI_MODEL__; })) window.__FI_MODEL__ = "";
+      var wrap = document.createElement("label");
+      wrap.className = "fi-model";
+      wrap.title = "Which AI model runs your scans and drafts. Every model works from the same signals and method; faster ones are less likely to hit the 60-second limit when the service is busy.";
+      wrap.appendChild(document.createTextNode("Model"));
+      var sel = document.createElement("select");
+      sel.id = "fiModel";
+      data.models.forEach(function (m) {
+        var o = document.createElement("option");
+        o.value = m.id;
+        o.textContent = m.label + (m.hint ? " — " + m.hint : "");
+        if (m.id === (window.__FI_MODEL__ || data["default"])) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener("change", function () {
+        window.__FI_MODEL__ = sel.value === data["default"] ? "" : sel.value;
+        try { localStorage.setItem("fi_model", window.__FI_MODEL__); } catch (e) {}
+      });
+      wrap.appendChild(sel);
+      actions.appendChild(wrap);
+    }).catch(function () { /* older server: no picker */ });
 
     // Clone to drop the app's original (paste-only) click handler, then own it.
     var freshBtn = btn.cloneNode(true);
@@ -773,11 +931,55 @@
       try {
         var sres = await fetch("/api/store");
         var sdata = await sres.json();
+        // Idle-wiped engine + a snapshot in this browser -> restore its memory,
+        // then re-read (weeks of thread history survive a platform eviction).
+        if (!sdata.total || !sdata.lastPull) {
+          try {
+            var snap = JSON.parse(localStorage.getItem("fi_snapshot") || "null");
+            if (snap && snap.signals && Object.keys(snap.signals).length) {
+              await fetch("/api/import", { method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ signals: snap.signals, lastPull: snap.lastPull }) });
+              sres = await fetch("/api/store");
+              sdata = await sres.json();
+            }
+          } catch (e2) { /* no snapshot / restore refused — engine rebuilds itself */ }
+        }
         lastPull = sdata.lastPull || 0;
         issues = sdata.issues || [];
         if (Array.isArray(sdata.defaults) && sdata.defaults.length) DEFAULT_NAMES = sdata.defaults;
         (sdata.sources || []).forEach(function (s) { if (s.items && s.items.length) storeMap[s.name] = s.items; });
+        renderSteeple(sdata.domains || {});
+        // Snapshot the engine's memory into this browser (bodies stripped) so a
+        // future idle wipe can be healed by the restore above.
+        if (sdata.total) {
+          fetch("/api/export").then(function (r) { return r.json(); }).then(function (ex) {
+            var sigs = {};
+            Object.keys(ex.signals || {}).forEach(function (k) {
+              var s = ex.signals[k];
+              sigs[k] = { id: s.id, source: s.source, title: s.title, summary: (s.summary || "").slice(0, 400),
+                link: s.link, firstSeen: s.firstSeen, lastSeen: s.lastSeen, lastBump: s.lastBump,
+                timesSeen: s.timesSeen, triage: s.triage };
+            });
+            var payload = JSON.stringify({ savedAt: lastPull, lastPull: (ex.meta && ex.meta.lastPull) || lastPull, signals: sigs });
+            try { if (payload.length < 3000000) localStorage.setItem("fi_snapshot", payload); } catch (e3) {}
+          }).catch(function () {});
+        }
       } catch (e) { /* engine unreachable — fall through to live fetch below */ }
+
+      // 1b) Retrieval: ask the engine which signals in its memory bear on each
+      //     tracked topic and on the team's mandate (hybrid semantic + keyword
+      //     search, server-side). Best-effort — without it the pull is exactly
+      //     what it was before.
+      var retrieved = null;
+      try {
+        var ctxBox = document.getElementById("context");
+        var rres = await fetch("/api/retrieve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topics: window.__FI_TOPICS__ || [], mandate: ctxBox ? ctxBox.value.trim() : "", k: 3 })
+        });
+        if (rres.ok) retrieved = await rres.json();
+      } catch (e) { /* older server / offline: no retrieval */ }
 
       // 2) Sources the engine doesn't watch (user-added) are fetched live.
       var results = {};
@@ -863,13 +1065,46 @@
         return s.blocks.filter(function (b) { return !b.link || !inIssue[b.link]; }).map(function (b) { return b.text; });
       }).filter(function (b) { return b.length; });
 
+      // Retrieved evidence per tracked topic (server /api/retrieve: semantic +
+      // keyword search over the engine's memory): the passage of each article
+      // that best matches the topic, citable like any signal. Articles already
+      // in the scan input are pointed to by code rather than repeated, and a
+      // topic with no support is stated as such (CSF: absence is a signal).
+      // Budgeted ahead of the trim below, whole topics only.
+      var topicBlock = "";
+      if (retrieved && retrieved.topics && retrieved.topics.length) {
+        var tl = ["EVIDENCE RETRIEVED FOR TRACKED TOPICS (semantic + keyword search over the engine's memory):"];
+        var tlLen = tl[0].length;
+        retrieved.topics.forEach(function (t) {
+          var lines = [];
+          if (!t.hits || !t.hits.length) {
+            lines.push("TOPIC " + t.topic + ": no supporting signal in the engine's memory this cycle \u2014 the absence may itself be a signal.");
+          } else {
+            lines.push("TOPIC " + t.topic + ":");
+            t.hits.forEach(function (h) {
+              var had = h.link && LINKCODE[h.link];
+              var code = codeFor(h, h.source);
+              if (had) { lines.push("  \u2022 see [" + code + "] " + h.title.slice(0, 100)); return; }
+              var line = "  \u2022 [" + h.source + "] " + h.title + (h.passage ? " \u2014 " + h.passage : "") + (code ? " [" + code + "]" : "");
+              if (code) REFTEXT[code] = line;
+              lines.push(line);
+            });
+          }
+          var chunk = lines.join("\n");
+          if (tlLen + chunk.length > 2600) return;
+          tl.push(chunk);
+          tlLen += chunk.length + 1;
+        });
+        if (tl.length > 1) topicBlock = tl.join("\n") + "\n\n";
+      }
+
       // Signal budget: input + generation must finish inside the GovTech
       // gateway's hard 60s proxy timeout (gpt-5.5 latency is load-dependent:
       // ~39s quiet, >60s congested). Cards keep full text; only the scan input
       // is cut. Trim order: oldest singletons from the longest source (floor 1
       // per source), then issue evidence (floor 2 per issue), then the
       // lowest-ranked issues.
-      var BUDGET = 10000;
+      var BUDGET = 10000 - topicBlock.length;
       function render() {
         var parts = issueBlocks.map(function (ib) { return ib.header + "\n" + ib.ev.join("\n\n"); });
         left.forEach(function (b) { parts.push(b.join("\n\n")); });
@@ -886,7 +1121,7 @@
         if (issueBlocks.length > 1) { issueBlocks.pop(); continue; }
         break;
       }
-      sig.value = render();
+      sig.value = topicBlock + render();
       sig.dispatchEvent(new Event("input", { bubbles: true }));
 
       freshBtn.disabled = false;

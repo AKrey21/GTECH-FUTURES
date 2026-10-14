@@ -93,3 +93,23 @@ with open HTTPS.
 - What to observe in the pilot: do different personas produce *usefully different*
   briefings from the same signal pool? Which persona edits helped? Where does the
   shared triage filter fight a tester's domain?
+
+## Reliability & safety layer (`lib/`)
+
+- **Structured outputs** — scan, brief, audit and triage replies are validated
+  against a schema on the server. Small format slips are fixed automatically,
+  any `[L#]` citation the model was never shown is removed, and if nothing usable
+  comes back one repair call goes to the fast model inside the 60s limit.
+- **Prompt-injection guard** — scraped article text is cleaned before any model
+  sees it (hidden characters, chat-template tokens, "ignore your instructions"
+  phrasing). Anything caught is listed in **Engine audit**.
+- **Telemetry** — every model call is logged. **Engine audit** shows calls, error
+  rate, p50/p95 scan latency, tokens, schema pass rate and citations caught.
+  Dollar costs appear once the gateway's per-model rates are set in `.env.local`:
+  `LLM_PRICES={"gpt-5.5":[in,out],...}` (USD per million tokens). Raw numbers:
+  `GET /api/metrics?window=24h|7d|30d|all`.
+- **Retrieval** — each tester's tracked topics pull matching evidence from the
+  engine's memory (semantic + keyword search, `POST /api/retrieve`). A topic with
+  no support is stated as a gap in the scan input. Calibrate on the live store
+  with `/api/retrieve?debug=1&dense=0.3&sparse=0.03`.
+- Tests: `node --test test/*.test.mjs` (no network needed).

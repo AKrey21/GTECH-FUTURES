@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 const req = createRequire(import.meta.url);
 let chromium; try { ({ chromium } = req('playwright')); } catch { ({ chromium } = req(process.env.PLAYWRIGHT_MODULE || '/opt/node-tools/node_modules/playwright')); }
-import os from 'node:os'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+import os from 'node:os'; import path from 'node:path'; import { fileURLToPath, pathToFileURL } from 'node:url';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const S = fs.mkdtempSync(path.join(os.tmpdir(), 'fi-e2e-'));
 process.env.PORT = '3124'; process.env.DATA_DIR = S; process.env.LLM_API_KEY = 'test';
@@ -57,7 +57,7 @@ globalThis.fetch = async (url, opts) => {
   // article body
   return new Response('<html><body><p>' + 'Paragraph one of the article body with enough length to count as real text. '.repeat(2) + '</p><p>' + 'Second paragraph of the article, also comfortably over fifty characters long. '.repeat(2) + '</p><p>' + 'Third paragraph closes the article with more than fifty characters of prose. '.repeat(2) + '</p></body></html>', { status: 200, headers: { 'Content-Type': 'text/html' } });
 };
-await import(path.join(ROOT, 'server.mjs'));
+await import(pathToFileURL(path.join(ROOT, 'server.mjs')).href);   // file URL: a bare path fails on Windows
 const base = 'http://127.0.0.1:3124';
 const get = (p, h) => realFetch(base + p, { headers: h || {} }).then(r => r.json());
 const fails = []; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
