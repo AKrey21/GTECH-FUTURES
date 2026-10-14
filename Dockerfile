@@ -10,6 +10,8 @@
 FROM gdssingapore/airbase:node-22
 WORKDIR /app
 COPY --chown=app:app server.mjs /app/server.mjs
+# LLM-ops modules: structured outputs, injection guard, telemetry, retrieval.
+COPY --chown=app:app lib/ /app/lib/
 COPY --chown=app:app dist/ /app/dist/
 # The scan engine's memory (data/store.json) lives here. Ephemeral across
 # redeploys — snapshot via GET /api/export before shipping code changes.

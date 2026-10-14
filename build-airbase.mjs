@@ -107,10 +107,10 @@ patch('csf-defaults-a',
   '      "[OECD] AI tutors and adaptive learning are improving, and interest is growing in skills-based, verifiable digital credentials that record what a person can actually do.",\n' +
   '      "[OECD] Reports that the half-life of job-specific skills keeps shortening, strengthening the case for continuous, modular reskilling over one-off qualifications."\n' +
   '    ]},',
-  '{ id: "journals", name: "arXiv (Computers & Society)", kind: "Journals", method: "RSS feed", url: "https://arxiv.org/list/cs.CY/recent", excerpts: [] },\n' +
-  '    { id: "fringe", name: "Ethan Mollick", kind: "Self-publishing", method: "RSS feed", url: "https://www.oneusefulthing.org/", excerpts: [] },\n' +
-  '    { id: "sgpolicy", name: "Singapore skills policy", kind: "Government & policy", method: "RSS feed", url: "https://www.mom.gov.sg/", excerpts: [] },\n' +
-  '    { id: "zh", name: "Chinese tech & jobs press", kind: "Different languages", method: "RSS feed", url: "https://news.google.com/", excerpts: [] },'
+  '{ id: "journals", name: "arXiv (Computers & Society)", kind: "Journals · weak-signal input", method: "RSS feed", url: "https://arxiv.org/list/cs.CY/recent", excerpts: [] },\n' +
+  '    { id: "fringe", name: "Ethan Mollick", kind: "Commentary (Wharton)", method: "RSS feed", url: "https://www.oneusefulthing.org/", excerpts: [] },\n' +
+  '    { id: "straitstimes", name: "Straits Times (Singapore)", kind: "Press · Singapore", method: "RSS feed", url: "https://www.straitstimes.com/", excerpts: [] },\n' +
+  '    { id: "nikkei", name: "Nikkei Asia", kind: "Press · East Asia", method: "RSS feed", url: "https://asia.nikkei.com/", excerpts: [] },'
 );
 patch('csf-defaults-b',
   '{ id: "policy", name: "World Economic Forum", kind: "Think tanks & gov", method: "RSS feed", url: "https://www.weforum.org/", lastItem: "15 Jun 2026", excerpts: [\n' +
@@ -198,6 +198,13 @@ patch('card-why-label',
   '<div class="flabel-sm">Why it may matter for SWDA/TED</div>',
   '<div class="flabel-sm">Why it may matter</div>'
 );
+// "Open questions", not "Questions for the team": with no defined pilot users
+// yet, "the team" presumes an owner that does not exist — the scan raises the
+// question, the reader decides whether it is theirs.
+patch('card-questions-label',
+  '<div class="flabel-sm">Could consider</div>',
+  '<div class="flabel-sm">Open questions</div>'
+);
 patch('brief-prompt-neutral',
   'MONTHLY FUTURES BRIEFING EMAIL for SWDA/TED leadership, written by the analyst engine.',
   'MONTHLY FUTURES BRIEFING EMAIL for agency leadership, written by the analyst engine.'
@@ -242,9 +249,15 @@ patch('scan-weak-signals',
   // ones. (Signal budget + MAX_TOKENS in server.mjs tuned to match.)
   '"1. Identify the 5 STRONGEST emerging trends in the signals (fewer if the signals are thin). Prefer weak signals \\u2014 surprising, discontinuous developments \\u2014 over what informed readers already know, and spread trends across different domains where the signals allow. One article can carry more than one distinct signal \\u2014 mine it fully. Two outlets covering the same event count as ONE signal. News about the reader\'s own organisation is background, not a finding. Ignore one-off vendor hype and sponsored content.\\n" +'
 );
+// Options are QUESTIONS, not suggestions (user decision 2026-09-25): machine
+// advice about internal levers is reliably out of touch — the model only knows
+// what the mandate box says. Questions hand interpretation to the reader (the
+// CSF Now What stays human) and may cite internal programmes ONLY when the
+// team-maintained mandate text mentions them, so stale references die in the
+// UI instead of being fossilised in prompts.
 patch('scan-options-levers',
   '"   - options: 1\\u20132 short candidate next steps, framed as options NOT recommendations.\\n" +',
-  '"   - options: 1\\u20132 short candidate next steps, framed as options NOT recommendations. Each option must name the concrete lever it would act on (which framework, programme, review, tool or advice would change); at most ONE option per trend may be pure monitoring.\\n" +'
+  '"   - options: 1\\u20132 short OPEN QUESTIONS for the team to weigh, each ending with a question mark. Never advice, suggestions or recommendations. A question may name a specific internal programme, framework or lever ONLY if the team context above mentions it by name; otherwise ask generically (e.g. which existing programme would absorb this?). At most ONE question per trend may be about what to monitor.\\n" +'
 );
 patch('scan-source-language',
   'or null if the signal has no code}.\\n" +',
@@ -299,13 +312,91 @@ patch('drop-evidence-schema',
   '\\"ref\\": string|null}]}. No markdown'
 );
 
+// 15) Structured outputs: scan and brief calls name their JSON schema, so the
+//     server validates, coerces, grounds [L#] citations and (if nothing usable
+//     came back) repairs before replying. A valid reply is canonical JSON, so
+//     extractJSON/extractObject below parse it unchanged; an invalid one is the
+//     raw text, and the app's own salvage/fallback paths still apply.
+patch('scan-schema',
+  'messages: [{ role: "user", content: buildPrompt(context, signals) }]',
+  'messages: [{ role: "user", content: buildPrompt(context, signals) }], schema: "trends", purpose: "scan"'
+);
+patch('brief-schema',
+  'messages: [{ role: "user", content: buildBriefPrompt(ctxEl.value.trim(), included) }]',
+  'messages: [{ role: "user", content: buildBriefPrompt(ctxEl.value.trim(), included) }], schema: "brief", purpose: "brief"'
+);
+
 fs.writeFileSync(path.join(DIST, 'app.js'), appJs + '\n');
 appHtml = appHtml.replace(appScript[0], '<script src="app.js"></script>');
 
 // When LIVE_AI is off, leave the shim's placeholder URL so engine.js stays inert →
 // window.claude is undefined → the app auto-forces Demo mode (canned, no key).
 const engineUrlValue = LIVE_AI ? ENGINE_URL : 'https://REPLACE-WITH-YOUR-WORKER.workers.dev/';
-const engineBody = engine.body.trim().replace(/var ENGINE_URL = "[^"]*";/, `var ENGINE_URL = "${engineUrlValue}";`);
+let engineBody = engine.body.trim().replace(/\r\n/g, '\n').replace(/var ENGINE_URL = "[^"]*";/, `var ENGINE_URL = "${engineUrlValue}";`);
+// Model passthrough: ingest.js's picker keeps window.__FI_MODEL__ in sync;
+// JSON.stringify drops the key while it's undefined/"" so the server default
+// applies. Verified like the app.js patches — throws if the shim drifts.
+const engineOld = 'body: JSON.stringify({ messages: request.messages })';
+if (engineBody.split(engineOld).length !== 2) throw new Error('engine patch failed (no unique match): model passthrough');
+engineBody = engineBody.replace(engineOld, 'body: JSON.stringify({ messages: request.messages, model: window.__FI_MODEL__ || undefined })');
+// Congestion fallback: the GovTech gateway hard-kills any request at 60s, and
+// under evening load the heavyweight models blow past it (504). Retrying as a
+// FRESH request on the fast model keeps each attempt inside both the gateway's
+// and the Airbase edge's 60s limits — a server-side sequential retry would not
+// fit. Verified patch: throws if the shim drifts.
+const engineFnOld = [
+  '      complete: async function (request) {',
+  '        var res = await fetch(ENGINE_URL, {',
+  '          method: "POST",',
+  '          headers: { "Content-Type": "application/json" },',
+  '          body: JSON.stringify({ messages: request.messages, model: window.__FI_MODEL__ || undefined })',
+  '        });',
+  '        if (!res.ok) {',
+  '          var detail = "";',
+  '          try { detail = (await res.json()).error || ""; } catch (e) {}',
+  '          throw new Error("engine " + res.status + (detail ? " — " + detail : ""));',
+  '        }',
+  '        return (await res.json()).text;',
+  '      }',
+].join('\n');
+const engineFnNew = [
+  '      complete: async function (request) {',
+  '        // On a gateway timeout (502/504, or the edge\'s HTML error page),',
+  '        // retry ONCE as a fresh request on the fast model. Two separate',
+  '        // requests each fit the 60s limits; one long one would not.',
+  '        // `schema` asks the server to validate/repair the output against a',
+  '        // named JSON schema (lib/structured.mjs); `purpose` and `fallback`',
+  '        // label the call in the LLM telemetry.',
+  '        var FAST = "azure.claude-haiku-4-5";',
+  '        async function attempt(model, fallback) {',
+  '          var res = await fetch(ENGINE_URL, {',
+  '            method: "POST",',
+  '            headers: { "Content-Type": "application/json" },',
+  '            body: JSON.stringify({ messages: request.messages, model: model || undefined,',
+  '              schema: request.schema || undefined, purpose: request.purpose || undefined, fallback: fallback || undefined })',
+  '          });',
+  '          var data = null;',
+  '          try { data = await res.json(); } catch (e) { /* edge HTML page */ }',
+  '          if (!res.ok || !data || typeof data.text !== "string") {',
+  '            var err = new Error("engine " + res.status + (data && data.error ? " — " + data.error : ""));',
+  '            err.retryable = res.status === 502 || res.status === 504 || !data;',
+  '            throw err;',
+  '          }',
+  '          return data.text;',
+  '        }',
+  '        var chosen = window.__FI_MODEL__ || undefined;',
+  '        try {',
+  '          return await attempt(chosen);',
+  '        } catch (e) {',
+  '          if (!e.retryable || chosen === FAST) throw e;',
+  '          window.__FI_FELL_BACK__ = true;',
+  '          console.warn("engine: " + (e.message || "timeout") + " — retrying on the fast model");',
+  '          return await attempt(FAST, true);',
+  '        }',
+  '      }',
+].join('\n');
+if (engineBody.split(engineFnOld).length !== 2) throw new Error('engine patch failed (no unique match): congestion fallback');
+engineBody = engineBody.replace(engineFnOld, engineFnNew);
 fs.writeFileSync(path.join(DIST, 'engine.js'), engineBody + '\n');
 appHtml = appHtml.replace(/<\/head>/i, '  <script src="engine.js"></script>\n</head>');
 

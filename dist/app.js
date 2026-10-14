@@ -21,10 +21,10 @@
       "[MIT Technology Review] Smaller, cheaper, more efficient models and on-device AI are maturing fast, lowering the cost of running AI and reducing dependence on a few large providers; some governments are investing in sovereign AI compute.",
       "[MIT Technology Review] Models that handle text, image, audio and video together are becoming standard, widening where AI applies across digital services."
     ]},
-    { id: "journals", name: "arXiv (Computers & Society)", kind: "Journals", method: "RSS feed", url: "https://arxiv.org/list/cs.CY/recent", excerpts: [] },
-    { id: "fringe", name: "Ethan Mollick", kind: "Self-publishing", method: "RSS feed", url: "https://www.oneusefulthing.org/", excerpts: [] },
-    { id: "sgpolicy", name: "Singapore skills policy", kind: "Government & policy", method: "RSS feed", url: "https://www.mom.gov.sg/", excerpts: [] },
-    { id: "zh", name: "Chinese tech & jobs press", kind: "Different languages", method: "RSS feed", url: "https://news.google.com/", excerpts: [] },
+    { id: "journals", name: "arXiv (Computers & Society)", kind: "Journals · weak-signal input", method: "RSS feed", url: "https://arxiv.org/list/cs.CY/recent", excerpts: [] },
+    { id: "fringe", name: "Ethan Mollick", kind: "Commentary (Wharton)", method: "RSS feed", url: "https://www.oneusefulthing.org/", excerpts: [] },
+    { id: "straitstimes", name: "Straits Times (Singapore)", kind: "Press · Singapore", method: "RSS feed", url: "https://www.straitstimes.com/", excerpts: [] },
+    { id: "nikkei", name: "Nikkei Asia", kind: "Press · East Asia", method: "RSS feed", url: "https://asia.nikkei.com/", excerpts: [] },
     { id: "oecd", name: "OECD Education & Skills", kind: "Think tanks & gov", method: "RSS feed", url: "https://www.oecd.org/education/", excerpts: [] },
     { id: "sgnews", name: "Channel NewsAsia", kind: "Trade press", method: "RSS feed", url: "https://www.channelnewsasia.com/", excerpts: [] },
     
@@ -411,7 +411,7 @@
            <p>${esc(it.why)}</p>
          </div>
          ${opts.length ? `<div class="frow">
-           <div class="flabel-sm">Could consider</div>
+           <div class="flabel-sm">Open questions</div>
            <ul>${opts.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
          </div>` : ""}
          ${srcs.length ? `<div class="sources">${srcs.map((s) => (window.__FI_SRC_TAG__ ? window.__FI_SRC_TAG__(s, esc) : `<span class="src">${esc(typeof s === "string" ? s : (s && s.label) || "")}</span>`)).join("")}</div>` : ""}
@@ -531,7 +531,7 @@
 "3. For each trend write TIGHTLY \u2014 ONE short sentence per text field, no more than two:\n" +
 "   - what: what it is, in plain language.\n" +
 "   - why: why it may matter to the team specifically, grounded in the signals.\n" +
-"   - options: 1\u20132 short candidate next steps, framed as options NOT recommendations. Each option must name the concrete lever it would act on (which framework, programme, review, tool or advice would change); at most ONE option per trend may be pure monitoring.\n" +
+"   - options: 1\u20132 short OPEN QUESTIONS for the team to weigh, each ending with a question mark. Never advice, suggestions or recommendations. A question may name a specific internal programme, framework or lever ONLY if the team context above mentions it by name; otherwise ask generically (e.g. which existing programme would absorb this?). At most ONE question per trend may be about what to monitor.\n" +
 "   - sources: 1\u20132 citations for the signals that support it, each an object {\"label\": a short label (e.g. \"Analyst outlook\"), \"ref\": the [L#] code shown at the end of that signal (e.g. \"L3\"), or null if the signal has no code}. Never cite the same article for more than one trend. If a cited source is not in English, add the language to the label, e.g. \"Shanghai skill list (Chinese)\".\n" +
 "   - confidence: \"High\" ONLY when two or more INDEPENDENT sources support it (different outlets reporting different events or evidence \u2014 one announcement covered twice is one source); \"Medium\" for one strong source plus a weaker echo; \"Low\" for a single source, however striking. Ratings must vary with the evidence \u2014 never give every trend the same confidence.\n" +
 "   - trajectory: one of \"Rising\", \"Emerging\", \"Steady\" or \"Cooling\" \u2014 how the signal seems to be moving.\n" +
@@ -632,7 +632,7 @@
 
     try {
       const raw = await window.claude.complete({
-        messages: [{ role: "user", content: buildPrompt(context, signals) }]
+        messages: [{ role: "user", content: buildPrompt(context, signals) }], schema: "trends", purpose: "scan"
       });
       const data = extractJSON(raw);
       if (!Array.isArray(data) || data.length === 0) {
@@ -849,7 +849,7 @@
     } else {
       try {
         const raw = await window.claude.complete({
-          messages: [{ role: "user", content: buildBriefPrompt(ctxEl.value.trim(), included) }]
+          messages: [{ role: "user", content: buildBriefPrompt(ctxEl.value.trim(), included) }], schema: "brief", purpose: "brief"
         });
         brief = extractObject(raw);
         if (!brief || typeof brief !== "object") throw new Error("bad shape");
