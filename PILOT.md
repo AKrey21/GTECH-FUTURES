@@ -61,6 +61,8 @@ confidence check) against mocked feeds and a mocked model, with no network.
 
 ## Sources
 
+To check that every catalog feed actually pulls from your machine, follow **[VERIFY.md](VERIFY.md)**.
+
 The engine pulls ten default sources daily and knows ~320 more by name — sorted by the
 CSF handbook's source types (of-record press, government of record, think tanks,
 consultancies, journals, self-publishing, forums, podcasts, different languages,
