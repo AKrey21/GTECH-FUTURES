@@ -30,7 +30,9 @@ wide first ... remember to regularly update (read: weed) your list of sources".
 
 **Signal budget.** The scan prompt is capped (~10k characters) so the model finishes inside the
 gateway's 60-second limit. More default sources means fewer items per source per scan; that is why the
-daily set stays at ten and breadth lives in the catalog and packs. The engine's daily store still ingests
+daily set stays at ten and breadth lives in the catalog and packs. Since the issue-ledger
+change, the scan reads corroborated issues (with evidence from distinct publishers) before
+single items, so the budget is spent on what is already seen in several unconnected places. The engine's daily store still ingests
 and triages every default, and the Engine audit view shows the discard pile and the per-source scorecard
 (cited / scanned) — use the scorecard to rotate defaults, as the pilot did when it swapped Josh Bersin
 for OECD.

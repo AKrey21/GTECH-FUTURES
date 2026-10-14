@@ -14,6 +14,7 @@
   try { code = localStorage.getItem(LS_KEY) || ""; } catch (e) {}
   var profile = null;
   var lastAutofill = "";   // persona text we last wrote into the mandate box
+  var restoredSources = false;
 
   // --- every same-origin API call carries the access code ---
   var origFetch = window.fetch.bind(window);
@@ -134,6 +135,15 @@
       ctx.dispatchEvent(new Event("input", { bubbles: true }));
     } else if (ctx && ctx.value === data.persona) {
       lastAutofill = data.persona;
+    }
+    // Re-create the tester's saved sources as cards (once per page load), so
+    // the engine's per-persona ingestion and the page agree on what is watched.
+    if (!restoredSources && Array.isArray(data.sources) && data.sources.length && window.__FI_ADD_SOURCE__) {
+      restoredSources = true;
+      var have = Array.prototype.slice.call(document.querySelectorAll("#srcList .src-name")).map(function (e) { return e.textContent.replace(/↗/g, "").trim(); });
+      var added = 0;
+      data.sources.forEach(function (s) { if (s && s.name && have.indexOf(s.name) === -1 && window.__FI_ADD_SOURCE__(s.name)) added++; });
+      if (added) { var sb = document.getElementById("sampleBtn"); if (sb) setTimeout(function () { sb.click(); }, 900); }
     }
     var pill = document.getElementById("fiPill") || el("button", "fi-pill");
     pill.id = "fiPill";

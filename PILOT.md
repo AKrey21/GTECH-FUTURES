@@ -40,6 +40,25 @@ Note: the shared signal pool is triaged for skills/workforce/tech relevance. A
 persona far from that domain will find fewer supporting signals — add your own
 sources (type a name in "Add source") to pull live content for your area.
 
+## How a signal earns its confidence
+
+Every daily pull is triaged, then clustered into an **issue ledger**: items that report
+the same development (across sources and across days) are grouped, and each issue counts
+its **unconnected publishers** (SPH titles, Mediacorp channels and .gov.sg sites each
+count once). The scan reads the most-corroborated issues first, with their evidence, then
+single items. After a scan the app applies the CSF rule mechanically: a **High** rating
+whose cited signals all trace to one publisher is downgraded on the card and in the
+briefing, and every card shows "✓ N unconnected publishers" or "single publisher", plus
+"Tracked since … · N signals · N cycles" when the trend comes from the ledger. The
+**Engine audit** link shows the ledger, how many High ratings held, which sources are
+rotation candidates (scanned 3+ times, never cited) and the discard pile.
+
+Sources you add to your cards are saved to your profile, pulled and triaged daily like
+the defaults, and come back as cards when you sign in again (up to 12).
+
+`node scripts/e2e-mock.mjs` runs the whole chain (pull → triage → cluster → scan →
+confidence check) against mocked feeds and a mocked model, with no network.
+
 ## Sources
 
 The engine pulls ten default sources daily and knows ~320 more by name — sorted by the

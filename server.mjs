@@ -493,9 +493,32 @@ function saveProfiles() {
   } catch (e) { console.error('profiles save failed:', e.message); }
 }
 const TOPICS_MAX = 10, TOPIC_LEN = 80;
+// Per-tester sources: the cards a tester adds (from the catalog or by name) are
+// saved here and ingested + triaged daily alongside the defaults, so a persona's
+// own sources build the same corroboration history. Capped to keep the daily
+// pull bounded; feeds must be allow-listed, otherwise only the query survives.
+const USER_SOURCES_MAX = 12;
+function cleanSources(arr) {
+  if (!Array.isArray(arr)) return [];
+  const out = []; const seen = new Set();
+  for (const s of arr) {
+    if (!s || typeof s !== 'object') continue;
+    const name = String(s.name || '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
+    if (!name || seen.has(name) || WATCHED_NAMES.has(name)) continue;
+    let feed = '';
+    try { const u = new URL(String(s.feed || '')); if (u.protocol === 'https:' && FEED_HOST_ALLOW.has(u.host)) feed = u.href; } catch { /* no feed */ }
+    const query = String(s.query || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+    const lang = GN_LOCALE[s.lang] ? String(s.lang) : 'en';
+    if (!feed && !query) continue;
+    seen.add(name);
+    out.push({ name, feed, query, lang });
+    if (out.length >= USER_SOURCES_MAX) break;
+  }
+  return out;
+}
 function profileView(user) {
   const p = profiles[user] || {};
-  return { user, displayName: p.displayName || user, persona: p.persona || '', topics: p.topics || [], personaDefault: PERSONA_DEFAULT };
+  return { user, displayName: p.displayName || user, persona: p.persona || '', topics: p.topics || [], sources: p.sources || [], personaDefault: PERSONA_DEFAULT };
 }
 async function handleProfile(req, res) {
   if (!PILOT.size) return sendJSON(res, 200, { user: null, displayName: '', persona: '', personaDefault: PERSONA_DEFAULT });
@@ -503,7 +526,7 @@ async function handleProfile(req, res) {
   if (!user) return sendJSON(res, 401, { error: 'sign in with your access code' });
   if (req.method === 'GET') return sendJSON(res, 200, profileView(user));
   let raw = '';
-  for await (const c of req) { raw += c; if (raw.length > 20_000) return sendJSON(res, 413, { error: 'body too large' }); }
+  for await (const c of req) { raw += c; if (raw.length > 40_000) return sendJSON(res, 413, { error: 'body too large' }); }
   let body;
   try { body = JSON.parse(raw); } catch { return sendJSON(res, 400, { error: 'invalid JSON' }); }
   const next = { ...(profiles[user] || {}) };
@@ -514,9 +537,18 @@ async function handleProfile(req, res) {
   if (Array.isArray(body.topics)) {
     next.topics = body.topics.map(t => String(t).replace(/\s+/g, ' ').trim().slice(0, TOPIC_LEN)).filter(Boolean).slice(0, TOPICS_MAX);
   }
+  let newSources = [];
+  if (Array.isArray(body.sources)) {
+    const before = new Set((next.sources || []).map(s => s.name));
+    next.sources = cleanSources(body.sources);
+    newSources = next.sources.filter(s => !before.has(s.name));
+  }
   next.updated = Date.now();
   profiles[user] = next;
   saveProfiles();
+  // Newly added sources get pulled + triaged right away (background), so their
+  // first items reach the store without waiting for the daily cycle.
+  if (newSources.length) ingestSources(newSources).catch(() => {});
   return sendJSON(res, 200, profileView(user));
 }
 // Restore personas after a redeploy from an /api/export snapshot. Only known
@@ -525,7 +557,7 @@ async function handleImport(req, res) {
   const user = authUser(req);
   if (PILOT.size && !user) return sendJSON(res, 401, { error: 'sign in with your access code' });
   let raw = '';
-  for await (const c of req) { raw += c; if (raw.length > 200_000) return sendJSON(res, 413, { error: 'body too large' }); }
+  for await (const c of req) { raw += c; if (raw.length > 400_000) return sendJSON(res, 413, { error: 'body too large' }); }
   let body;
   try { body = JSON.parse(raw); } catch { return sendJSON(res, 400, { error: 'invalid JSON' }); }
   if (!body || typeof body.profiles !== 'object' || !body.profiles || Array.isArray(body.profiles)) {
@@ -540,6 +572,7 @@ async function handleImport(req, res) {
       displayName: String((p && p.displayName) || name).replace(/\s+/g, ' ').trim().slice(0, NAME_MAX),
       persona: String((p && p.persona) || '').trim().slice(0, PERSONA_MAX),
       topics: Array.isArray(p && p.topics) ? p.topics.map(t => String(t).replace(/\s+/g, ' ').trim().slice(0, TOPIC_LEN)).filter(Boolean).slice(0, TOPICS_MAX) : [],
+      sources: cleanSources(p && p.sources),
       updated: Date.now(),
     };
     restored++;
@@ -578,8 +611,9 @@ const WATCHED_SOURCES = [
   { name: "ISEAS Fulcrum", query: "site:fulcrum.sg (workforce OR labour OR skills OR AI OR \"digital economy\" OR migration OR ageing OR education OR Johor) when:90d" },
 ];
 
-let store = { signals: {}, meta: { lastPull: 0 } };
+let store = { signals: {}, issues: {}, meta: { lastPull: 0 } };
 try { store = JSON.parse(fs.readFileSync(STORE_PATH, 'utf8')); } catch { /* fresh store */ }
+store.issues = store.issues || {};
 function saveStore() {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -589,6 +623,27 @@ function saveStore() {
 }
 function sigId(it) {
   return crypto.createHash('sha1').update(((it.link || '') + '|' + (it.title || '')).toLowerCase()).digest('hex').slice(0, 16);
+}
+
+// ---------- corroboration: publisher groups ----------
+// CSF: confidence comes from UNCONNECTED sources. Two SPH titles, two Mediacorp
+// channels, or two .gov.sg sites reporting the same thing are ONE publisher.
+// Everything else is grouped by registrable domain; an unresolved Google News
+// link falls back to the catalog source name.
+const PUB_GROUPS = [
+  [/(^|\.)(straitstimes\.com|businesstimes\.com\.sg|zaobao\.com\.sg|zaobao\.com|beritaharian\.sg|tamilmurasu\.com\.sg|shinmin\.sg|sph\.com\.sg|stomp\.com\.sg|tnp\.sg)$/, 'SPH Media'],
+  [/(^|\.)(channelnewsasia\.com|8world\.com|mediacorp\.sg|todayonline\.com|cna\.asia)$/, 'Mediacorp'],
+  [/\.gov\.sg$/, 'Singapore Government'],
+  [/(^|\.)(nus\.edu\.sg|ipscommons\.sg)$/, 'NUS / IPS'],
+];
+function publisherOf(link, source) {
+  let h = '';
+  try { h = new URL(link).hostname.replace(/^www\./, '').toLowerCase(); } catch { /* no link */ }
+  if (!h || h === 'news.google.com') return source || 'unknown';
+  for (const [re, name] of PUB_GROUPS) if (re.test(h)) return name;
+  const parts = h.split('.');
+  const n = /\.(com|edu|gov|org|net|co|ac)\.[a-z]{2}$/.test(h) ? 3 : 2;
+  return parts.slice(-n).join('.');
 }
 
 // CSF-style triage, batched to respect the 20 req/min gateway limit. If the
@@ -602,43 +657,111 @@ const TRIAGE_PROMPT =
   'Environmental, Political, Legal, Ethical) and novelty 1-5 (5 = would surprise most people at the ' +
   'agency; 1 = widely known). Reply with ONLY a JSON array like ' +
   '[{"i":0,"keep":true,"domain":"Technological","novelty":3}] covering every item, no other text.';
-async function triageBatch(sigs) {
-  if (!sigs.length || !KEY) return;
-  const list = sigs.map((s, i) => ({ i, source: s.source, title: s.title, summary: (s.summary || '').slice(0, 200) }));
+async function llmJSON(system, user, maxTokens, open, close) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 60000);
   try {
     const res = await fetch(LLM_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + KEY },
-      body: JSON.stringify({ model: MODEL, max_tokens: 1800, messages: [
-        { role: 'system', content: TRIAGE_PROMPT },
-        { role: 'user', content: JSON.stringify(list) },
-      ] }),
+      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
       signal: ctrl.signal,
     });
     const data = await res.json();
     const text = (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
-    const arr = JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1));
+    return JSON.parse(text.slice(text.indexOf(open), text.lastIndexOf(close) + 1));
+  } finally { clearTimeout(t); }
+}
+async function triageBatch(sigs) {
+  if (!sigs.length || !KEY) return;
+  const list = sigs.map((s, i) => ({ i, source: s.source, title: s.title, summary: (s.summary || '').slice(0, 200) }));
+  try {
+    const arr = await llmJSON(TRIAGE_PROMPT, JSON.stringify(list), 1800, '[', ']');
     for (const v of arr) {
       const s = sigs[v.i];
       if (s) s.triage = { keep: v.keep !== false, domain: v.domain || '', novelty: Math.max(1, Math.min(5, +v.novelty || 3)) };
     }
   } catch (e) { console.error('triage failed (keeping items untriaged):', e.message); }
-  finally { clearTimeout(t); }
 }
 
+// ---------- issue ledger: cross-source, cross-cycle corroboration ----------
+// The handbook's test for a signal is that it is seen in several UNCONNECTED
+// places. Triage judges items one at a time, so this step groups kept items
+// into "issues" (the same development, policy move, practice shift or claim)
+// and keeps the issue alive across daily cycles. The scan then receives issues
+// with their evidence, and confidence can follow the publisher count
+// mechanically instead of being a vibe.
+const CLUSTER_PROMPT =
+  'You maintain the issue ledger of a CSF-style horizon scan for a Singapore skills-and-workforce agency. ' +
+  'OPEN ISSUES are developments already being tracked (id + title). For each numbered NEW signal decide ' +
+  'whether it reports the SAME emerging issue as an open issue — the same development, policy move, ' +
+  'practice shift, dataset or claim, not merely the same broad topic. If yes, return that issue id. If no, ' +
+  'propose a new issue: a specific title (max 12 words, no outlet names, no dates) and a one-sentence ' +
+  'summary of the development. Two or more new signals about the same new issue must share the same newKey. ' +
+  'Reply with ONLY a JSON array like [{"i":0,"issue":"i3f2a1b9c0","newKey":null,"newTitle":"","newSummary":""}] ' +
+  'covering every item, no other text.';
+function openIssues(now) {
+  return Object.values(store.issues || {}).filter(x => now - x.lastSeen < 60 * 24 * 3600e3).sort((a, b) => b.lastSeen - a.lastSeen);
+}
+function createIssue(title, summary, domain, now) {
+  const id = 'i' + crypto.createHash('sha1').update(title.toLowerCase() + '|' + now).digest('hex').slice(0, 9);
+  store.issues[id] = { id, title: title.slice(0, 120), summary: (summary || '').slice(0, 300), domain: domain || '', firstSeen: now, lastSeen: now, signals: [] };
+  return store.issues[id];
+}
+function attachToIssue(s, issue) {
+  s.issue = issue.id;
+  if (!issue.signals.includes(s.id)) issue.signals.push(s.id);
+  issue.lastSeen = Math.max(issue.lastSeen || 0, s.lastSeen || Date.now());
+  if (!issue.domain && s.triage && s.triage.domain) issue.domain = s.triage.domain;
+}
+async function clusterBatch(sigs, now) {
+  if (!sigs.length || !KEY) return;
+  store.issues = store.issues || {};
+  const open = openIssues(now).slice(0, 80).map(x => ({ id: x.id, title: x.title }));
+  const list = sigs.map((s, i) => ({ i, source: s.source, title: s.title, summary: (s.body || s.summary || '').slice(0, 240) }));
+  let arr;
+  try { arr = await llmJSON(CLUSTER_PROMPT, JSON.stringify({ openIssues: open, newSignals: list }), 2200, '[', ']'); }
+  catch (e) { console.error('clustering failed (signals stay unassigned):', e.message); return; }
+  const created = {};
+  for (const v of (arr || [])) {
+    const s = sigs[v.i];
+    if (!s) continue;
+    if (v.issue && store.issues[v.issue]) { attachToIssue(s, store.issues[v.issue]); continue; }
+    const title = String(v.newTitle || '').trim();
+    if (!title) continue;
+    const key = String(v.newKey || title).toLowerCase();
+    const issue = created[key] || (created[key] = createIssue(title, v.newSummary, s.triage && s.triage.domain, now));
+    attachToIssue(s, issue);
+  }
+}
+function issueStats(issue) {
+  const sigs = issue.signals.map(id => store.signals[id]).filter(Boolean);
+  const pubs = [...new Set(sigs.map(s => publisherOf(s.link, s.source)))];
+  const sources = [...new Set(sigs.map(s => s.source))];
+  const days = new Set(sigs.map(s => Math.floor((s.firstSeen || 0) / 864e5)));
+  return { sigs, pubs, sources, cycles: days.size, unconnected: pubs.length };
+}
+
+// ---------- ingestion ----------
+const WATCHED_NAMES = new Set(WATCHED_SOURCES.map(s => s.name));
+// Defaults plus every signed-in tester's own sources (deduped by name).
+function allSources() {
+  const seen = new Set(WATCHED_NAMES); const out = [...WATCHED_SOURCES];
+  for (const p of Object.values(profiles)) for (const s of (p.sources || [])) if (s && s.name && !seen.has(s.name)) { seen.add(s.name); out.push(s); }
+  return out;
+}
 let ingesting = null;
-function runIngestion(force) {
-  if (ingesting) return ingesting;
-  if (!force && Date.now() - (store.meta.lastPull || 0) < 20 * 3600e3) return Promise.resolve();
-  ingesting = (async () => {
+// Pull, enrich, triage and cluster the given sources into the store. Serialised
+// behind `ingesting` so the daily run and a tester's new-source pull never
+// interleave their store writes.
+function ingestSources(list) {
+  const run = async () => {
     const now = Date.now();
     const fresh = [];
-    await Promise.all(WATCHED_SOURCES.map(async (src) => {
-      let r = await fetchFeed(src.feed || googleNewsUrl(src.query, src.lang), 10);
+    await Promise.all(list.map(async (src) => {
+      let r = await fetchFeed(src.feed || googleNewsUrl(src.query, src.lang), 20);
       // Feed first, Google News query as the fallback (see handleFeeds).
-      if ((!r.items || !r.items.length) && src.feed && src.query) r = await fetchFeed(googleNewsUrl(src.query, src.lang), 10);
+      if ((!r.items || !r.items.length) && src.feed && src.query) r = await fetchFeed(googleNewsUrl(src.query, src.lang), 20);
       if (!r.items || !r.items.length) return;
       await Promise.all(r.items.map(async (it) => {
         if (it.link && /^https:\/\/news\.google\.com\//.test(it.link)) {
@@ -668,56 +791,116 @@ function runIngestion(force) {
           if (it.body && !ex.body) ex.body = it.body;
         } else {
           const s = { id, source: src.name, title: it.title, summary: it.summary || '', body: it.body || '',
-            link: it.link || '', firstSeen: now, lastSeen: now, lastBump: now, timesSeen: 1, triage: null };
+            link: it.link || '', firstSeen: now, lastSeen: now, lastBump: now, timesSeen: 1, triage: null, issue: null };
           store.signals[id] = s;
           fresh.push(s);
         }
       }
     }));
     for (let i = 0; i < fresh.length; i += 12) await triageBatch(fresh.slice(i, i + 12));
+    const kept = fresh.filter(s => !s.triage || s.triage.keep !== false);
+    for (let i = 0; i < kept.length; i += 15) await clusterBatch(kept.slice(i, i + 15), now);
+    saveStore();
+    console.log(`ingested ${list.length} source(s): ${fresh.length} new signals, ${kept.length} kept, ${Object.keys(store.signals).length} in store, ${Object.keys(store.issues || {}).length} issues`);
+  };
+  const p = (ingesting || Promise.resolve()).then(run, run).finally(() => { if (ingesting === p) ingesting = null; });
+  ingesting = p;
+  return p;
+}
+function runIngestion(force) {
+  if (ingesting) return ingesting;
+  if (!force && Date.now() - (store.meta.lastPull || 0) < 20 * 3600e3) return Promise.resolve();
+  return ingestSources(allSources()).then(() => {
+    const now = Date.now();
+    store.issues = store.issues || {};
     for (const [id, s] of Object.entries(store.signals)) {
       if (now - s.lastSeen > 60 * 24 * 3600e3) delete store.signals[id];   // forget after 60 quiet days
     }
+    for (const [id, iss] of Object.entries(store.issues)) {
+      iss.signals = iss.signals.filter(sid => store.signals[sid]);
+      if (!iss.signals.length) delete store.issues[id];
+    }
     store.meta.lastPull = now;
     saveStore();
-    console.log(`ingestion done: ${fresh.length} new signals, ${Object.keys(store.signals).length} in store`);
-  })().finally(() => { ingesting = null; });
-  return ingesting;
+  });
 }
 // pull on boot (5s grace), then check every 30 min whether the daily pull is due
 setTimeout(() => { runIngestion().catch(() => {}); }, 5000);
 setInterval(() => { runIngestion().catch(() => {}); }, 30 * 60e3);
 
-function storeView() {
+// Ranking for the daily slice: corroborated items first, then novelty, then recency.
+function itemScore(s) {
+  const iss = s.issue && store.issues && store.issues[s.issue];
+  const corro = iss ? Math.min(3, issueStats(iss).unconnected) : 0;
+  const nov = s.triage ? s.triage.novelty : 3;
+  const ageDays = (Date.now() - (s.lastSeen || 0)) / 864e5;
+  return corro * 2 + nov - Math.min(5, ageDays) * 0.4;
+}
+function itemView(s, i) {
+  return { title: s.title, detail: (s.body || s.summary || '').slice(0, i < 2 ? 650 : 280), link: s.link,
+    timesSeen: s.timesSeen, firstSeen: s.firstSeen, domain: s.triage ? s.triage.domain : '', novelty: s.triage ? s.triage.novelty : null,
+    publisher: publisherOf(s.link, s.source), issue: s.issue || null };
+}
+function storeView(user) {
   const bySource = {};
   for (const s of Object.values(store.signals)) {
     if (s.triage && s.triage.keep === false) continue;
     (bySource[s.source] = bySource[s.source] || []).push(s);
   }
-  const sources = WATCHED_SOURCES.map((src) => ({
+  const mine = (user && profiles[user] && profiles[user].sources) || [];
+  const list = [...WATCHED_SOURCES, ...mine.filter(s => !WATCHED_NAMES.has(s.name))];
+  const sources = list.map((src) => ({
     name: src.name,
     items: (bySource[src.name] || [])
-      .sort((a, b) => (b.lastSeen - a.lastSeen) || ((b.triage ? b.triage.novelty : 3) - (a.triage ? a.triage.novelty : 3)))
+      .sort((a, b) => itemScore(b) - itemScore(a))
       .slice(0, 5)
       // Detail budget: the LLM gateway 504s past ~26k chars of signals, so the
-      // two freshest items per source carry full detail and the rest are kept
+      // two best items per source carry full detail and the rest are kept
       // short — still enough for the model to see corroboration.
-      .map((s, i) => ({ title: s.title, detail: (s.body || s.summary || '').slice(0, i < 2 ? 650 : 280), link: s.link,
-        timesSeen: s.timesSeen, firstSeen: s.firstSeen,
-        domain: s.triage ? s.triage.domain : '', novelty: s.triage ? s.triage.novelty : null })),
+      .map(itemView),
   }));
-  return { lastPull: store.meta.lastPull, total: Object.keys(store.signals).length, sources };
+  // Issue ledger slice: the developments seen in the most unconnected places,
+  // each with evidence from distinct publishers where possible.
+  const servedNames = new Set(list.map(s => s.name));
+  const now = Date.now();
+  const issues = openIssues(now).map(iss => ({ iss, st: issueStats(iss) }))
+    .filter(x => x.st.sigs.some(s => servedNames.has(s.source)))
+    .sort((a, b) => (b.st.unconnected - a.st.unconnected) || (b.st.sigs.length - a.st.sigs.length) || (b.iss.lastSeen - a.iss.lastSeen))
+    .slice(0, 12)
+    .map(({ iss, st }) => {
+      const seenPub = new Set(); const evidence = [];
+      for (const s of st.sigs.sort((a, b) => b.lastSeen - a.lastSeen)) {
+        const pub = publisherOf(s.link, s.source);
+        if (seenPub.has(pub) && evidence.length < st.pubs.length) continue;
+        seenPub.add(pub); evidence.push({ source: s.source, ...itemView(s, evidence.length) });
+        if (evidence.length >= 4) break;
+      }
+      return { id: iss.id, title: iss.title, summary: iss.summary, domain: iss.domain, firstSeen: iss.firstSeen, lastSeen: iss.lastSeen,
+        signals: st.sigs.length, unconnected: st.unconnected, publishers: st.pubs, sources: st.sources, cycles: st.cycles, evidence };
+    });
+  return { lastPull: store.meta.lastPull, total: Object.keys(store.signals).length, defaults: [...WATCHED_NAMES], sources, issues };
 }
 // CSF: scanning must be auditable. The audit view exposes what triage rejected
-// (the discard pile) and how each source performs at scan time (the scorecard,
-// fed by POST /api/scorecard after every scan).
+// (the discard pile), the issue ledger, how each source performs at scan time
+// (the scorecard, fed by POST /api/scorecard after every scan), which sources
+// are candidates for rotation, and how often the model's High ratings survived
+// the mechanical corroboration check.
 function auditView() {
+  const now = Date.now();
   const discards = Object.values(store.signals)
     .filter(s => s.triage && s.triage.keep === false)
     .sort((a, b) => b.lastSeen - a.lastSeen)
     .slice(0, 50)
     .map(s => ({ source: s.source, title: s.title, link: s.link, domain: s.triage.domain, novelty: s.triage.novelty }));
-  return { discards, scorecard: store.meta.scorecard || {} };
+  const issues = openIssues(now).map(iss => ({ iss, st: issueStats(iss) }))
+    .sort((a, b) => (b.st.unconnected - a.st.unconnected) || (b.iss.lastSeen - a.iss.lastSeen))
+    .slice(0, 60)
+    .map(({ iss, st }) => ({ id: iss.id, title: iss.title, summary: iss.summary, domain: iss.domain, firstSeen: iss.firstSeen, lastSeen: iss.lastSeen,
+      signals: st.sigs.length, unconnected: st.unconnected, publishers: st.pubs, sources: st.sources, cycles: st.cycles,
+      links: st.sigs.slice(0, 6).map(s => ({ source: s.source, title: s.title, link: s.link })) }));
+  const sc = store.meta.scorecard || {};
+  const rotate = Object.entries(sc).filter(([, r]) => (r.scans || 0) >= 3 && !(r.cited || 0)).map(([n]) => n);
+  return { discards, issues, scorecard: sc, rotate, checks: store.meta.checks || { trends: 0, high: 0, highHeld: 0, adjusted: 0 } };
 }
 async function handleScorecard(req, res) {
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'x';
@@ -745,6 +928,10 @@ async function handleScorecard(req, res) {
   };
   (Array.isArray(body.sources) ? body.sources.slice(0, 30) : []).forEach(n => bump(n, 'scans'));
   (Array.isArray(body.cited) ? body.cited.slice(0, 30) : []).forEach(n => bump(n, 'cited'));
+  if (body.checks && typeof body.checks === 'object') {
+    const c = store.meta.checks = store.meta.checks || { trends: 0, high: 0, highHeld: 0, adjusted: 0 };
+    for (const k of ['trends', 'high', 'highHeld', 'adjusted']) c[k] += Math.max(0, Math.min(20, +body.checks[k] || 0));
+  }
   saveStore();
   return sendJSON(res, 200, { ok: true });
 }
@@ -758,7 +945,7 @@ async function handleStore(req, res, qs) {
   // Serve what we have now, but let a visit top up a stale store in the
   // background (runIngestion self-gates on the 20h staleness check).
   else runIngestion().catch(() => {});
-  return sendJSON(res, 200, storeView());
+  return sendJSON(res, 200, storeView(authUser(req)));
 }
 
 function serveStatic(req, res) {

@@ -264,6 +264,14 @@ patch('scan-confidence-rubric',
   '"   - confidence: \\"High\\", \\"Medium\\" or \\"Low\\", based on how many independent signals support it.\\n" +',
   '"   - confidence: \\"High\\" ONLY when two or more INDEPENDENT sources support it (different outlets reporting different events or evidence \\u2014 one announcement covered twice is one source); \\"Medium\\" for one strong source plus a weaker echo; \\"Low\\" for a single source, however striking. Ratings must vary with the evidence \\u2014 never give every trend the same confidence.\\n" +'
 );
+// 10b) Issue-ledger blocks (server-side clustering, 2026-10): signals grouped
+//      under an [ISSUE: …] header have already been matched across sources and
+//      cycles by the engine; the header carries the unconnected-publisher count
+//      that the confidence rubric depends on.
+patch('scan-issue-blocks',
+  'Ignore one-off vendor hype and sponsored content.\\n" +',
+  'Ignore one-off vendor hype and sponsored content. Signals indented under an [ISSUE: …] header have already been matched by the engine\'s issue ledger as the same development seen across sources and cycles: the header states how many UNCONNECTED publishers reported it and since when — use that count when rating confidence, and cite the individual signals beneath it (never the header).\\n" +'
+);
 // 11) Briefing email opens with priorities, not a survey (testers: "my director
 //     expects me to prioritise, not to ask her to").
 patch('brief-intro-priorities',

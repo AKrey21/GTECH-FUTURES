@@ -13,7 +13,36 @@
   var LINKS = window.__FI_LINKS__ = {};
   var REFSRC = {};   // "L3" -> source display name (feeds the scorecard)
   var REFTEXT = {};  // "L3" -> the signal block text (feeds the citation-fit check)
+  var REFPUB = {};   // "L3" -> publisher group (feeds the corroboration check)
+  var REFISSUE = {}; // "L3" -> issue-ledger entry the signal belongs to, if any
+  var LINKCODE = {}; // url -> "L3" (one code per article, however many blocks cite it)
   var linkSeq = 0;
+  var DEFAULT_NAMES = [];   // the engine's daily defaults (from /api/store)
+
+  // Publisher grouping for the client-side corroboration check (mirrors
+  // server.mjs publisherOf): SPH titles, Mediacorp channels and .gov.sg sites
+  // each count as ONE publisher; otherwise the registrable domain.
+  function pubOf(link, source) {
+    var h = "";
+    try { h = new URL(link).hostname.replace(/^www\./, "").toLowerCase(); } catch (e) {}
+    if (!h || h === "news.google.com") return source || "unknown";
+    if (/(^|\.)(straitstimes\.com|businesstimes\.com\.sg|zaobao\.com\.sg|zaobao\.com|beritaharian\.sg|tamilmurasu\.com\.sg|shinmin\.sg|sph\.com\.sg|stomp\.com\.sg|tnp\.sg)$/.test(h)) return "SPH Media";
+    if (/(^|\.)(channelnewsasia\.com|8world\.com|mediacorp\.sg|todayonline\.com|cna\.asia)$/.test(h)) return "Mediacorp";
+    if (/\.gov\.sg$/.test(h)) return "Singapore Government";
+    if (/(^|\.)(nus\.edu\.sg|ipscommons\.sg)$/.test(h)) return "NUS / IPS";
+    var parts = h.split(".");
+    var n = /\.(com|edu|gov|org|net|co|ac)\.[a-z]{2}$/.test(h) ? 3 : 2;
+    return parts.slice(-n).join(".");
+  }
+  function pubsOf(t) {
+    var pubs = [];
+    ((t && t.sources) || []).forEach(function (s) {
+      var ref = s && typeof s === "object" && s.ref ? String(s.ref).replace(/[\[\]\s]/g, "") : null;
+      var p = ref && REFPUB[ref];
+      if (p && pubs.indexOf(p) === -1) pubs.push(p);
+    });
+    return pubs;
+  }
 
   // Called by the (patched) card renderer for each source tag. `s` is either a
   // plain string (demo mode) or {label, ref} from a live scan.
@@ -54,11 +83,13 @@
           ? '<a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.label) + " ↗</a>"
           : "<span>" + esc(p.label) + "</span>";
       });
-      return parts.length ? '<span class="eml-srcs">Sources: ' + parts.join(" · ") + "</span>" : "";
+      var k = pubsOf(t).length;
+      return parts.length ? '<span class="eml-srcs">Sources: ' + parts.join(" · ") + (k >= 2 ? " · " + k + " unconnected publishers" : "") + "</span>" : "";
     },
     text: function (t) {
       var parts = srcParts(t).map(function (p) { return p.url ? p.label + " — " + p.url : p.label; });
-      return parts.length ? "\n      Sources: " + parts.join("; ") : "";
+      var k = pubsOf(t).length;
+      return parts.length ? "\n      Sources: " + parts.join("; ") + (k >= 2 ? " (" + k + " unconnected publishers)" : "") : "";
     },
     footerHtml: function (esc) {
       var names = scannedNames();
@@ -457,7 +488,7 @@
   window.__FI_ADD_SOURCE__ = function (name) {
     var input = document.getElementById("srcName");
     var form = document.getElementById("srcAdd");
-    if (!input || !form || !FEEDS[name]) return false;
+    if (!input || !form || !name) return false;
     var existing = Array.prototype.slice.call(document.querySelectorAll("#srcList .src-name"))
       .map(function (el) { return el.textContent.replace(/↗/g, "").trim(); });
     if (existing.indexOf(name) !== -1) return false;
@@ -466,6 +497,23 @@
     else form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     return true;
   };
+
+  // Per-tester sources: whatever cards sit beside the defaults are saved to the
+  // profile, so the engine ingests and triages them daily and they build the
+  // same corroboration history as the defaults. Debounced on card changes.
+  var syncTimer = null, lastSync = null;
+  function syncUserSources() {
+    if (!window.__FI_USER__) return;
+    var list = scannedNames().filter(function (n) { return DEFAULT_NAMES.indexOf(n) === -1; }).map(function (n) {
+      var s = specFor(n);
+      return { name: n, feed: s.feed || "", query: s.query || "", lang: s.lang || "en" };
+    });
+    var key = JSON.stringify(list);
+    if (key === lastSync) return;
+    lastSync = key;
+    fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sources: list }) }).catch(function () {});
+  }
+  window.__FI_SYNC_SOURCES__ = function () { clearTimeout(syncTimer); syncTimer = setTimeout(syncUserSources, 1500); };
 
   // CSF source-type labels for the card badges (read by the patched renderer).
   var KINDS = window.__FI_KIND__ = {};
@@ -501,10 +549,57 @@
           if (src && cited.indexOf(src) === -1) cited.push(src);
         });
       });
+      // Mechanical confidence check (CSF: High needs two or more UNCONNECTED
+      // sources). The model is asked to follow this rule; here it is enforced:
+      // a High rating whose cited signals all trace to one publisher is
+      // downgraded on the card and in the briefing, and every card shows how
+      // many unconnected publishers back it. Signals from the issue ledger also
+      // carry their history (tracked since, signals, cycles).
+      var checks = { trends: 0, high: 0, highHeld: 0, adjusted: 0 };
+      (trends || []).forEach(function (t, i) {
+        var refs = ((t && t.sources) || []).map(refOf).filter(Boolean);
+        if (!refs.length) return;
+        var pubs = pubsOf(t);
+        var iss = null;
+        refs.forEach(function (r) { if (!iss && REFISSUE[r]) iss = REFISSUE[r]; });
+        var k = Math.max(pubs.length, iss ? iss.unconnected : 0);
+        checks.trends++;
+        var conf = ["High", "Medium", "Low"].indexOf(t.confidence) >= 0 ? t.confidence : "Low";
+        var adjusted = false;
+        if (conf === "High") {
+          checks.high++;
+          if (k < 2) { t.confidence = refs.length >= 2 ? "Medium" : "Low"; adjusted = true; checks.adjusted++; }
+          else checks.highHeld++;
+        }
+        var card = document.querySelector('#columns article.card[data-idx="' + i + '"]');
+        if (!card) return;
+        var chip = card.querySelector(".chip");
+        if (adjusted && chip) { chip.className = "chip " + t.confidence; chip.innerHTML = '<span class="cdot"></span>' + t.confidence + " confidence"; }
+        var top = card.querySelector(".card-top");
+        if (top) {
+          var c = document.createElement("span");
+          c.className = "fi-corro " + (k >= 2 ? "ok" : "warn");
+          c.title = k >= 2 ? "Cited signals come from " + k + " unconnected publishers: " + (pubs.length ? pubs.join(", ") : (iss ? iss.publishers.join(", ") : ""))
+                           : "Every cited signal traces to one publisher — the CSF method caps confidence until a second, unconnected source reports it.";
+          c.textContent = k >= 2 ? "✓ " + k + " unconnected publishers" : (adjusted ? "⚠ single publisher · confidence adjusted" : "single publisher");
+          top.appendChild(c);
+        }
+        if (iss) {
+          var ml = card.querySelector(".metaline");
+          if (!ml) { ml = document.createElement("div"); ml.className = "metaline"; var h3 = card.querySelector(".ctitle"); if (h3) h3.insertAdjacentElement("afterend", ml); }
+          if (ml) {
+            var b = document.createElement("span");
+            b.className = "mbadge fi-issue";
+            b.title = "Issue ledger: " + iss.title + (iss.summary ? " — " + iss.summary : "");
+            b.textContent = "Tracked since " + shortDate(iss.firstSeen) + " · " + iss.signals + " signal" + (iss.signals === 1 ? "" : "s") + " · " + iss.cycles + " cycle" + (iss.cycles === 1 ? "" : "s");
+            ml.appendChild(b);
+          }
+        }
+      });
       fetch("/api/scorecard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sources: present, cited: cited })
+        body: JSON.stringify({ sources: present, cited: cited, checks: checks })
       }).catch(function () {});
     } catch (e) {}
     auditScan(trends);
@@ -582,6 +677,17 @@
             return '<tr><td>' + esc(r.name) + '</td><td>' + (r.s.cited || 0) + ' cited / ' + (r.s.scans || 0) + ' scans</td></tr>';
           }).join('') + '</table>'
         : '<p class="fi-sub">No scans recorded yet this deployment.</p>';
+      var ck = d.checks || {};
+      html += '<p class="fi-sub" style="margin-top:14px">Confidence check — High ratings held against the two-unconnected-publishers rule: <b>' + (ck.highHeld || 0) + '</b> held, <b>' + (ck.adjusted || 0) + '</b> adjusted down, across ' + (ck.trends || 0) + ' trend cards.</p>';
+      if (d.rotate && d.rotate.length) html += '<p class="fi-sub">Rotation candidates (scanned 3+ times, never cited): ' + d.rotate.map(esc).join(" · ") + '.</p>';
+      html += '<p class="fi-sub" style="margin-top:14px">Issue ledger — developments the engine has matched across sources and cycles (unconnected publishers first).</p>';
+      html += (d.issues && d.issues.length)
+        ? '<ul class="fi-issues">' + d.issues.map(function (x) {
+            return '<li><b>' + esc(x.title) + '</b> — ' + x.unconnected + ' unconnected publisher' + (x.unconnected === 1 ? '' : 's') + ' (' + esc((x.publishers || []).slice(0, 5).join(', ')) + '), ' + x.signals + ' signal' + (x.signals === 1 ? '' : 's') + ', ' + x.cycles + ' cycle' + (x.cycles === 1 ? '' : 's') + ', since ' + esc(shortDate(x.firstSeen)) +
+              (x.summary ? '<br><span class="fi-sub">' + esc(x.summary) + '</span>' : '') +
+              (x.links && x.links.length ? '<br>' + x.links.map(function (l) { return l.link ? '<a href="' + esc(l.link) + '" target="_blank" rel="noopener">' + esc(l.source) + '</a>' : esc(l.source); }).join(' · ') : '') + '</li>';
+          }).join('') + '</ul>'
+        : '<p class="fi-sub">No issues yet — the ledger fills as daily pulls are clustered.</p>';
       html += '<p class="fi-sub" style="margin-top:14px">Filtered out by triage — rejected as routine or off-mission (CSF: the discard pile stays auditable).</p>';
       html += (d.discards && d.discards.length)
         ? '<ul class="fi-discards">' + d.discards.map(function (x) {
@@ -639,6 +745,12 @@
       ".fi-table td{padding:4px 6px;border-bottom:1px solid #e4e7da;}" +
       ".fi-discards{font-size:12px;color:#5c6b5f;padding-left:18px;max-height:220px;overflow-y:auto;margin:6px 0;}" +
       ".fi-discards a{color:#3e5c46;}" +
+      ".fi-corro{border-radius:9px;padding:2px 8px;font-size:11px;white-space:nowrap;cursor:help;margin-left:6px;}" +
+      ".fi-corro.ok{color:#2f6b3a;background:#e6f1e8;border:1px solid #c5dccb;}" +
+      ".fi-corro.warn{color:#a04b3c;background:#f7e9e4;border:1px solid #e5c8bc;}" +
+      ".fi-issue{cursor:help;}" +
+      ".fi-issues{font-size:12px;color:#2d3a31;padding-left:18px;max-height:260px;overflow-y:auto;margin:6px 0;}" +
+      ".fi-issues li{margin:5px 0;} .fi-issues a{color:#3e5c46;}" +
       ".fi-coverage{background:#faf3e3;border:1px solid #e6d3ac;border-radius:10px;padding:10px 14px;font-size:13px;color:#6b5a33;margin:10px 0;}";
     document.head.appendChild(st);
 
@@ -657,11 +769,13 @@
 
       // 1) Default sources come from the engine's memory (server-side daily
       //    ingestion + triage) — instant on a warm store.
-      var storeMap = {}, lastPull = 0;
+      var storeMap = {}, lastPull = 0, issues = [];
       try {
         var sres = await fetch("/api/store");
         var sdata = await sres.json();
         lastPull = sdata.lastPull || 0;
+        issues = sdata.issues || [];
+        if (Array.isArray(sdata.defaults) && sdata.defaults.length) DEFAULT_NAMES = sdata.defaults;
         (sdata.sources || []).forEach(function (s) { if (s.items && s.items.length) storeMap[s.name] = s.items; });
       } catch (e) { /* engine unreachable — fall through to live fetch below */ }
 
@@ -690,52 +804,89 @@
         } catch (e) { liveErr = e.message || "fetch failed"; /* keep whatever's already in the cards */ }
       }
 
-      var pulled = 0, all = [];
+      var pulled = 0, perSource = [];
+      function codeFor(it, name) {
+        if (!it.link) return null;
+        var c = LINKCODE[it.link];
+        if (!c) {
+          c = "L" + (++linkSeq);
+          LINKCODE[it.link] = c; LINKS[c] = it.link; REFSRC[c] = name;
+          REFPUB[c] = it.publisher || pubOf(it.link, name);
+        }
+        return c;
+      }
+      function blockFor(it, name, code) {
+        var detail = it.body || it.detail || it.summary;
+        // CSF corroboration: recurring signals carry their track record so
+        // the model can weigh multi-cycle evidence.
+        var seen = it.timesSeen > 1 ? " (seen " + it.timesSeen + "× since " + shortDate(it.firstSeen) + ")" : "";
+        var block = "[" + name + "] " + it.title + (detail ? " — " + detail : "") + seen + (code ? " [" + code + "]" : "");
+        if (code) REFTEXT[code] = block;
+        return block;
+      }
       rows.forEach(function (row, i) {
         var name = cardName(row);
         var ta = row.querySelector(".src-text");
         var live = results[String(i)];
         var items = storeMap[name] || (live && live.items) || null;
         if (ta && items && items.length) {
-          ta.value = items.map(function (it) {
-            var detail = it.body || it.detail || it.summary;
-            var ref = "", code = null;
-            if (it.link) {
-              code = "L" + (++linkSeq);
-              LINKS[code] = it.link;
-              REFSRC[code] = name;
-              ref = " [" + code + "]";
-            }
-            // CSF corroboration: recurring signals carry their track record so
-            // the model can weigh multi-cycle evidence.
-            var seen = it.timesSeen > 1 ? " (seen " + it.timesSeen + "× since " + shortDate(it.firstSeen) + ")" : "";
-            var block = "[" + name + "] " + it.title + (detail ? " — " + detail : "") + seen + ref;
-            if (code) REFTEXT[code] = block;
-            return block;
-          }).join("\n\n");
+          var blocks = items.map(function (it) { return { text: blockFor(it, name, codeFor(it, name)), link: it.link || "" }; });
+          ta.value = blocks.map(function (b) { return b.text; }).join("\n\n");
           ta.dispatchEvent(new Event("input", { bubbles: true })); // update app state + item count
           pulled += items.length;
+          perSource.push({ name: name, blocks: blocks });
+        } else if (ta && ta.value.trim()) {
+          perSource.push({ name: name, blocks: ta.value.trim().split("\n\n").map(function (x) { return { text: x, link: "" }; }) });
         }
-        if (ta && ta.value.trim()) all.push(ta.value.trim());
       });
 
+      // Issue blocks first: each is a development the engine has already matched
+      // across sources and cycles, with its evidence beneath — this is where
+      // corroborated (High-confidence) trends come from. Then the per-source
+      // singletons that no issue carries.
+      var issueBlocks = [], inIssue = {};
+      issues.slice(0, 8).forEach(function (iss) {
+        if (!iss.evidence || !iss.evidence.length) return;
+        var ev = iss.evidence.map(function (it) {
+          var code = codeFor(it, it.source);
+          if (code) REFISSUE[code] = iss;
+          if (it.link) inIssue[it.link] = true;
+          return "  " + blockFor(it, it.source, code);
+        });
+        var header = "[ISSUE: " + iss.title + "] — " + iss.unconnected + " unconnected publisher" + (iss.unconnected === 1 ? "" : "s") +
+          " (" + (iss.publishers || []).slice(0, 4).join(" · ") + "), " + iss.signals + " signal" + (iss.signals === 1 ? "" : "s") +
+          ", tracked since " + shortDate(iss.firstSeen) + " (" + iss.cycles + " cycle" + (iss.cycles === 1 ? "" : "s") + ")" +
+          (iss.summary ? "\n  " + iss.summary : "");
+        issueBlocks.push({ header: header, ev: ev });
+      });
+      var left = perSource.map(function (s) {
+        return s.blocks.filter(function (b) { return !b.link || !inIssue[b.link]; }).map(function (b) { return b.text; });
+      }).filter(function (b) { return b.length; });
+
       // Signal budget: input + generation must finish inside the GovTech
-      // gateway's hard 60s proxy timeout. gpt-5.5 latency is highly variable and
-      // load-dependent (same task measured 39s when the gateway is quiet, >60s
-      // when congested), so keep a margin here; when the gateway is congested no
-      // budget beats 60s and the app asks for a retry. Trim the longest sources'
-      // oldest items until the pull fits; cards keep full text, only the scan
-      // input is cut.
+      // gateway's hard 60s proxy timeout (gpt-5.5 latency is load-dependent:
+      // ~39s quiet, >60s congested). Cards keep full text; only the scan input
+      // is cut. Trim order: oldest singletons from the longest source (floor 1
+      // per source), then issue evidence (floor 2 per issue), then the
+      // lowest-ranked issues.
       var BUDGET = 10000;
-      var blocks = all.map(function (t) { return t.split("\n\n"); });
-      function totalLen() { return blocks.reduce(function (a, b) { return a + b.join("\n\n").length + 2; }, 0); }
-      while (totalLen() > BUDGET) {
-        var bi = 0;
-        for (var i = 1; i < blocks.length; i++) if (blocks[i].length > blocks[bi].length) bi = i;
-        if (blocks[bi].length <= 2) break;   // never trim a source below 2 items
-        blocks[bi].pop();
+      function render() {
+        var parts = issueBlocks.map(function (ib) { return ib.header + "\n" + ib.ev.join("\n\n"); });
+        left.forEach(function (b) { parts.push(b.join("\n\n")); });
+        return parts.join("\n\n");
       }
-      sig.value = blocks.map(function (b) { return b.join("\n\n"); }).join("\n\n");
+      var guard = 0;
+      while (render().length > BUDGET && guard++ < 600) {
+        var bi = -1;
+        for (var li = 0; li < left.length; li++) if (left[li].length > 1 && (bi < 0 || left[li].length > left[bi].length)) bi = li;
+        if (bi >= 0) { left[bi].pop(); continue; }
+        var ii = -1;
+        for (var k2 = issueBlocks.length - 1; k2 >= 0; k2--) if (issueBlocks[k2].ev.length > 2) { ii = k2; break; }
+        if (ii >= 0) { issueBlocks[ii].ev.pop(); continue; }
+        if (issueBlocks.length > 1) { issueBlocks.pop(); continue; }
+        break;
+      }
+      sig.value = render();
       sig.dispatchEvent(new Event("input", { bubbles: true }));
 
       freshBtn.disabled = false;
@@ -749,6 +900,11 @@
       sig.focus();
       sig.scrollTop = 0;
     });
+
+    var srcList = document.getElementById("srcList");
+    if (srcList && window.MutationObserver) {
+      new MutationObserver(function () { if (window.__FI_SYNC_SOURCES__) window.__FI_SYNC_SOURCES__(); }).observe(srcList, { childList: true });
+    }
 
     // Automate the cadence: read the engine's memory on page load, so the
     // sources are populated without any clicks.
