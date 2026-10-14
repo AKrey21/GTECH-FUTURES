@@ -202,7 +202,7 @@
       sugWrap.appendChild(el("label", "", "Suggested sources for this persona"));
       var chips = el("div", "fi-chips");
       var chipBtns = [];
-      names.slice(0, 6).forEach(function (n) {
+      names.slice(0, 10).forEach(function (n) {
         var c = el("button", "fi-chip", "+ " + n);
         c.type = "button";
         c.addEventListener("click", function () {

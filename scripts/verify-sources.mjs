@@ -31,9 +31,9 @@ const FEEDS = extract('web/ingest.js', /var FEEDS = (\{[\s\S]*?\n  \});/, 'FEEDS
 const WATCHED = extract('server.mjs', /const WATCHED_SOURCES = (\[[\s\S]*?\n\]);/, 'WATCHED_SOURCES');
 const ALLOW = new Set(extract('server.mjs', /const FEED_HOST_ALLOW = new Set\((\[[\s\S]*?\n\])\);/, 'FEED_HOST_ALLOW'));
 
+const GN_LOCALE = { en: 'hl=en-SG&gl=SG&ceid=SG:en', zh: 'hl=zh-CN&gl=CN&ceid=CN:zh-Hans', 'zh-SG': 'hl=zh-SG&gl=SG&ceid=SG:zh-Hans', ms: 'hl=ms-MY&gl=MY&ceid=MY:ms', ta: 'hl=ta&gl=IN&ceid=IN:ta', id: 'hl=id&gl=ID&ceid=ID:id', fr: 'hl=fr&gl=FR&ceid=FR:fr', ja: 'hl=ja&gl=JP&ceid=JP:ja' };
 function googleNewsUrl(q, lang) {
-  const loc = lang === 'zh' ? 'hl=zh-CN&gl=CN&ceid=CN:zh-Hans' : 'hl=en-SG&gl=SG&ceid=SG:en';
-  return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&${loc}`;
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&${GN_LOCALE[lang] || GN_LOCALE.en}`;
 }
 function parseFeed(xml) {
   const blocks = xml.match(/<(item|entry)\b[\s\S]*?<\/\1>/gi) || [];

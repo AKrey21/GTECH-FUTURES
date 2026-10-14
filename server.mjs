@@ -204,9 +204,97 @@ const FEED_HOST_ALLOW = new Set([
   'www.restaurantdive.com', 'restaurantdive.com',
   'insideretail.asia', 'www.insideretail.asia',
   'www.hiringlab.org', 'hiringlab.org',
+  // Catalog expansion 2026-10 (SOURCES.md). Hosts of every direct feed in the
+  // catalog; feeds that fail fall back to the entry's Google News query.
+  '36kr.com',
+  'algorithmwatch.org',
+  'asia.nikkei.com',
+  'berita.mediacorp.sg',
+  'blackbox.com.sg',
+  'blog.seedly.sg',
+  'chinai.substack.com',
+  'datasociety.net',
+  'dollarsandsense.sg',
+  'e.vnexpress.net',
+  'e27.co',
+  'eastasiaforum.org',
+  'fass.nus.edu.sg',
+  'feeds.hbr.org',
+  'forum.singaporeexpats.com',
+  'forums.hardwarezone.com.sg',
+  'fpf.org',
+  'fulcrum.sg',
+  'hrmasia.com',
+  'hrsea.economictimes.indiatimes.com',
+  'importai.substack.com',
+  'ink.library.smu.edu.sg',
+  'jfsdigital.org',
+  'journals.sagepub.com',
+  'mothership.sg',
+  'nep.repec.org',
+  'news.mongabay.com',
+  'onlinelibrary.wiley.com',
+  'opengovasia.com',
+  'opengovsg.substack.com',
+  'pluralistic.net',
+  'rss.sciencedirect.com',
+  'seithi.mediacorp.sg',
+  'splash247.com',
+  'stratechery.com',
+  'thediplomat.com',
+  'twc2.org.sg',
+  'vulcanpost.com',
+  'wethecitizens.net',
+  'www.academia.sg',
+  'www.adalovelaceinstitute.org',
+  'www.aisnakeoil.com',
+  'www.aware.org.sg',
+  'www.bangkokpost.com',
+  'www.ben-evans.com',
+  'www.businesstimes.com.sg',
+  'www.climatechangenews.com',
+  'www.dealstreetasia.com',
+  'www.eco-business.com',
+  'www.exponentialview.co',
+  'www.futuregenerations.wales',
+  'www.gov.uk',
+  'www.humanresourcesonline.net',
+  'www.iseas.edu.sg',
+  'www.japantimes.co.jp',
+  'www.jom.media',
+  'www.nature.com',
+  'www.nber.org',
+  'www.pewresearch.org',
+  'www.rand.org',
+  'www.rappler.com',
+  'www.reddit.com',
+  'www.ricemedia.co',
+  'www.rsis.edu.sg',
+  'www.sitra.fi',
+  'www.sixthtone.com',
+  'www.springwise.com',
+  'www.tandfonline.com',
+  'www.techinasia.com',
+  'www.techpolicy.press',
+  'www.ttgasia.com',
 ]);
+// Google News editions by catalog `lang`. 'zh' is the mainland edition the original
+// Chinese beat used; 'zh-SG' is the Singapore Chinese edition (Zaobao, 8world,
+// Shin Min). ms/ta/id editions index the vernacular press of MY/IN/ID — whether
+// they also index Singapore's Malay and Tamil sites is unverified; run
+// scripts/verify-sources.mjs and switch a source to a feed if its query is empty.
+const GN_LOCALE = {
+  en: 'hl=en-SG&gl=SG&ceid=SG:en',
+  zh: 'hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
+  'zh-SG': 'hl=zh-SG&gl=SG&ceid=SG:zh-Hans',
+  ms: 'hl=ms-MY&gl=MY&ceid=MY:ms',
+  ta: 'hl=ta&gl=IN&ceid=IN:ta',
+  id: 'hl=id&gl=ID&ceid=ID:id',
+  fr: 'hl=fr&gl=FR&ceid=FR:fr',
+  ja: 'hl=ja&gl=JP&ceid=JP:ja',
+};
 function googleNewsUrl(q, lang) {
-  const loc = lang === 'zh' ? 'hl=zh-CN&gl=CN&ceid=CN:zh-Hans' : 'hl=en-SG&gl=SG&ceid=SG:en';
+  const loc = GN_LOCALE[lang] || GN_LOCALE.en;
   return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&${loc}`;
 }
 function decodeEntities(s) {
@@ -462,18 +550,32 @@ async function handleImport(req, res) {
 
 // Server-side copy of the default watched sources (names must match the cards).
 const WATCHED_SOURCES = [
+  // Ten daily defaults, chosen for a spread across the CSF handbook's source types
+  // and STEEPLE with a Singapore-first lens (SOURCES.md explains each). The scan
+  // prompt has a hard size budget, so breadth lives in the catalog and persona
+  // packs, not here. Firehose feeds (Mothership, Fulcrum) are pulled by their
+  // keyword query so the daily slice is on-mission; Eco-Business pulls its feed
+  // first and falls back to its query.
   { name: 'McKinsey Global Institute', feed: 'https://www.mckinsey.com/insights/rss' },
-  { name: 'MIT Technology Review', feed: 'https://www.technologyreview.com/feed/' },
   { name: 'arXiv (Computers & Society)', feed: 'https://rss.arxiv.org/rss/cs.CY' },
   { name: 'Ethan Mollick', feed: 'https://www.oneusefulthing.org/feed' },
   // Outlet-allowlisted: parliamentary/policy signals must cite forwardable,
   // of-record outlets (ST/CNA/BT/gov.sg), not aggregators like theindependent.sg.
   { name: 'Singapore skills policy', query: 'Singapore (SkillsFuture OR "Workforce Singapore" OR "Ministry of Manpower") (skills OR jobs OR training OR workforce) (site:channelnewsasia.com OR site:straitstimes.com OR site:businesstimes.com.sg OR site:gov.sg) when:90d' },
-  { name: 'Chinese tech & jobs press', query: '人工智能 就业 技能', lang: 'zh' },
-  // Replaced Josh Bersin (zero citations across every pilot cycle) with OECD —
-  // the testers' top-requested institutional source. Bersin stays in the catalog.
+  // Singapore Chinese edition (Zaobao/8world/Shin Min) replaces the mainland
+  // '人工智能 就业 技能' beat as the daily different-languages leg; the mainland
+  // beat stays in the catalog as 'Chinese tech & jobs press'.
+  { name: "SG Chinese press (zh)", query: "(site:zaobao.com.sg OR site:8world.com OR site:shinmin.sg) (裁员 OR 技能培训 OR 技能创前程 OR 零工 OR 退休年龄 OR 人工智能 OR 雇主 OR 中小企业 OR 职场) when:90d", lang: "zh-SG" },
   { name: 'OECD Education & Skills', query: 'site:oecd.org (skills OR "adult learning" OR "vocational" OR "future of work" OR workforce OR "AI in education") when:180d' },
-  { name: 'Channel NewsAsia', feed: 'https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml' },
+  // Of-record opinion (academics/practitioners), free in full — replaces the CNA
+  // firehose feed, which stays in the catalog as 'Channel NewsAsia'.
+  { name: "CNA Commentary", query: "site:channelnewsasia.com \"Commentary:\" (jobs OR skills OR workers OR AI OR education OR careers OR gig OR retirement) when:90d" },
+  // Youth/ground sentiment (the handbook's forum type via an outlet of record).
+  { name: "Mothership", query: "site:mothership.sg (jobs OR salary OR retrenched OR retrenchment OR boss OR intern OR \"fresh grad\" OR \"work from home\" OR SkillsFuture OR AI OR employer) when:90d" },
+  // Environmental STEEPLE leg, Singapore-headquartered (feed confirmed by two directories).
+  { name: "Eco-Business", feed: "https://www.eco-business.com/feeds/all", query: "site:eco-business.com Singapore (\"green jobs\" OR \"green skills\" OR workforce OR \"just transition\" OR \"sustainability reporting\") when:90d" },
+  // Regional think-tank leg: SEA labour flows, JS-SEZ, neighbour skills policy.
+  { name: "ISEAS Fulcrum", query: "site:fulcrum.sg (workforce OR labour OR skills OR AI OR \"digital economy\" OR migration OR ageing OR education OR Johor) when:90d" },
 ];
 
 let store = { signals: {}, meta: { lastPull: 0 } };

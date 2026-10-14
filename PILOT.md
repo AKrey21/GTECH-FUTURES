@@ -40,6 +40,21 @@ Note: the shared signal pool is triaged for skills/workforce/tech relevance. A
 persona far from that domain will find fewer supporting signals — add your own
 sources (type a name in "Add source") to pull live content for your area.
 
+## Sources
+
+The engine pulls ten default sources daily and knows ~320 more by name — sorted by the
+CSF handbook's source types (of-record press, government of record, think tanks,
+consultancies, journals, self-publishing, forums, podcasts, different languages,
+foresight practice, labour-market data), Singapore first. **[SOURCES.md](SOURCES.md)**
+is the index: what each source is for, how it is pulled, which persona packs suggest
+it, and which handbook case study it comes from. Type a name from it into
+"Add source", or accept the pack chips in your profile panel.
+
+Feeds added in the 2026-10 expansion were not fetched live (the authoring session had
+no outbound network); each has a Google News fallback, and
+`node scripts/verify-sources.mjs --defaults` checks the daily set from any machine
+with open HTTPS.
+
 ## For the pilot owner
 
 - Testers live in `.env.local` (gitignored, never committed — the repo is public):

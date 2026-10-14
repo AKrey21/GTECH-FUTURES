@@ -110,7 +110,7 @@ patch('csf-defaults-a',
   '{ id: "journals", name: "arXiv (Computers & Society)", kind: "Journals", method: "RSS feed", url: "https://arxiv.org/list/cs.CY/recent", excerpts: [] },\n' +
   '    { id: "fringe", name: "Ethan Mollick", kind: "Self-publishing", method: "RSS feed", url: "https://www.oneusefulthing.org/", excerpts: [] },\n' +
   '    { id: "sgpolicy", name: "Singapore skills policy", kind: "Government & policy", method: "RSS feed", url: "https://www.mom.gov.sg/", excerpts: [] },\n' +
-  '    { id: "zh", name: "Chinese tech & jobs press", kind: "Different languages", method: "RSS feed", url: "https://news.google.com/", excerpts: [] },'
+  '    { id: "zh", name: "SG Chinese press (zh)", kind: "Different languages", method: "RSS feed", url: "https://www.zaobao.com.sg/", excerpts: [] },'
 );
 patch('csf-defaults-b',
   '{ id: "policy", name: "World Economic Forum", kind: "Think tanks & gov", method: "RSS feed", url: "https://www.weforum.org/", lastItem: "15 Jun 2026", excerpts: [\n' +
@@ -118,15 +118,25 @@ patch('csf-defaults-b',
   '      "[World Economic Forum] Its latest Future of Jobs analysis flags analytical thinking, resilience and AI literacy as the skills employers expect to rise most this decade."\n' +
   '    ]},',
   '{ id: "oecd", name: "OECD Education & Skills", kind: "Think tanks & gov", method: "RSS feed", url: "https://www.oecd.org/education/", excerpts: [] },\n' +
-  '    { id: "sgnews", name: "Channel NewsAsia", kind: "Trade press", method: "RSS feed", url: "https://www.channelnewsasia.com/", excerpts: [] },'
+  '    { id: "sgnews", name: "CNA Commentary", kind: "Trade press", method: "RSS feed", url: "https://www.channelnewsasia.com/commentary", excerpts: [] },\n' +
+  '    { id: "sgforum", name: "Mothership", kind: "Forums · sentiment", method: "RSS feed", url: "https://mothership.sg/", excerpts: [] },\n' +
+  '    { id: "sgenv", name: "Eco-Business", kind: "Trade press", method: "RSS feed", url: "https://www.eco-business.com/", excerpts: [] },\n' +
+  '    { id: "sgthink", name: "ISEAS Fulcrum", kind: "Think tanks & gov", method: "RSS feed", url: "https://fulcrum.sg/", excerpts: [] },'
 );
-// The pilot's cards must mirror the server engine's 8 watched sources, so the
-// demo-only extras go. (IMDA/Smart Nation and LinkedIn Economic Graph are good
+// The pilot's cards must mirror the server engine's 10 watched sources (see
+// WATCHED_SOURCES in server.mjs and SOURCES.md), so the demo-only extras go. (IMDA/Smart Nation and LinkedIn Economic Graph are good
 // candidates to ADD to the engine later — tracked in the Phase 2 backlog.)
 patch('csf-defaults-drop-gartner',
   '{ id: "gartner", name: "Gartner", kind: "Industry analysts", method: "API", url: "https://www.gartner.com/", lastItem: "9 Jun 2026", excerpts: [\n' +
   '      "[Gartner] Forecasts that a meaningful share of enterprise software will ship with embedded AI agents within two years, shifting many roles from \'doing the task\' to \'configuring and checking the agent that does it\'.",\n' +
   '      "[Gartner] Names AI literacy and prompt/agent oversight as emerging baseline competencies it expects employers to screen for across non-technical roles, not just engineering."\n' +
+  '    ]},\n    ',
+  ''
+);
+patch('csf-defaults-drop-mit-tr',
+  '{ id: "editorial", name: "MIT Technology Review", kind: "Trade press", method: "RSS feed", url: "https://www.technologyreview.com/", lastItem: "18 Jun 2026", excerpts: [\n' +
+  '      "[MIT Technology Review] Smaller, cheaper, more efficient models and on-device AI are maturing fast, lowering the cost of running AI and reducing dependence on a few large providers; some governments are investing in sovereign AI compute.",\n' +
+  '      "[MIT Technology Review] Models that handle text, image, audio and video together are becoming standard, widening where AI applies across digital services."\n' +
   '    ]},\n    ',
   ''
 );

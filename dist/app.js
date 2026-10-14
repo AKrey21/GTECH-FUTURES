@@ -17,16 +17,15 @@
       "[McKinsey Global Institute] Employers now report the fastest-growing skill need is working alongside AI \u2014 directing, checking and correcting model output \u2014 over producing the work unaided.",
       "[McKinsey Global Institute] Early adopters say the binding constraint on scaling agents is not the technology but a shortage of staff who can scope, supervise and audit what the agents do."
     ]},
-    { id: "editorial", name: "MIT Technology Review", kind: "Trade press", method: "RSS feed", url: "https://www.technologyreview.com/", lastItem: "18 Jun 2026", excerpts: [
-      "[MIT Technology Review] Smaller, cheaper, more efficient models and on-device AI are maturing fast, lowering the cost of running AI and reducing dependence on a few large providers; some governments are investing in sovereign AI compute.",
-      "[MIT Technology Review] Models that handle text, image, audio and video together are becoming standard, widening where AI applies across digital services."
-    ]},
     { id: "journals", name: "arXiv (Computers & Society)", kind: "Journals", method: "RSS feed", url: "https://arxiv.org/list/cs.CY/recent", excerpts: [] },
     { id: "fringe", name: "Ethan Mollick", kind: "Self-publishing", method: "RSS feed", url: "https://www.oneusefulthing.org/", excerpts: [] },
     { id: "sgpolicy", name: "Singapore skills policy", kind: "Government & policy", method: "RSS feed", url: "https://www.mom.gov.sg/", excerpts: [] },
-    { id: "zh", name: "Chinese tech & jobs press", kind: "Different languages", method: "RSS feed", url: "https://news.google.com/", excerpts: [] },
+    { id: "zh", name: "SG Chinese press (zh)", kind: "Different languages", method: "RSS feed", url: "https://www.zaobao.com.sg/", excerpts: [] },
     { id: "oecd", name: "OECD Education & Skills", kind: "Think tanks & gov", method: "RSS feed", url: "https://www.oecd.org/education/", excerpts: [] },
-    { id: "sgnews", name: "Channel NewsAsia", kind: "Trade press", method: "RSS feed", url: "https://www.channelnewsasia.com/", excerpts: [] },
+    { id: "sgnews", name: "CNA Commentary", kind: "Trade press", method: "RSS feed", url: "https://www.channelnewsasia.com/commentary", excerpts: [] },
+    { id: "sgforum", name: "Mothership", kind: "Forums · sentiment", method: "RSS feed", url: "https://mothership.sg/", excerpts: [] },
+    { id: "sgenv", name: "Eco-Business", kind: "Trade press", method: "RSS feed", url: "https://www.eco-business.com/", excerpts: [] },
+    { id: "sgthink", name: "ISEAS Fulcrum", kind: "Think tanks & gov", method: "RSS feed", url: "https://fulcrum.sg/", excerpts: [] },
     
   ];
 
