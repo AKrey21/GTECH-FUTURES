@@ -339,16 +339,27 @@ async function handleFeeds(req, res) {
 
   const work = items.slice(0, 12).map(async (it) => {
     const id = String(it.id);
-    let url;
-    if (it.query) url = googleNewsUrl(String(it.query).slice(0, 300), it.lang);
-    else if (it.feed) {
+    // A catalog entry may carry BOTH a direct feed and a Google News query: the
+    // feed is tried first (real article URLs, fetchable bodies) and the query is
+    // the fallback when the feed errors, is empty, or its host is not allowed —
+    // so a retired or unverified feed URL can never leave a card blank.
+    const query = it.query ? googleNewsUrl(String(it.query).slice(0, 300), it.lang) : '';
+    let url = '', feedErr = '';
+    if (it.feed) {
       try {
         const u = new URL(String(it.feed));
-        if (u.protocol !== 'https:' || !FEED_HOST_ALLOW.has(u.host)) return [id, { error: 'feed host not allowed', items: [] }];
-        url = u.href;
-      } catch { return [id, { error: 'bad feed url', items: [] }]; }
-    } else return [id, { error: 'no feed/query', items: [] }];
-    const r = await fetchFeed(url, perSource);
+        if (u.protocol !== 'https:' || !FEED_HOST_ALLOW.has(u.host)) feedErr = 'feed host not allowed';
+        else url = u.href;
+      } catch { feedErr = 'bad feed url'; }
+      if (feedErr && !query) return [id, { error: feedErr, items: [] }];
+    }
+    if (!url && !query) return [id, { error: 'no feed/query', items: [] }];
+    let r = url ? await fetchFeed(url, perSource) : { error: feedErr, items: [] };
+    if ((!r.items || !r.items.length) && query && url !== query) {
+      const fb = await fetchFeed(query, perSource);
+      if (fb.items && fb.items.length) { fb.via = 'google-news'; fb.feedError = r.error || 'empty feed'; r = fb; }
+      else if (!r.error) r = fb;
+    }
     if (r.items && r.items.length) {
       // Swap Google News wrapper links for the real article URLs.
       await Promise.all(r.items.map(async (it) => {
@@ -523,8 +534,9 @@ function runIngestion(force) {
     const now = Date.now();
     const fresh = [];
     await Promise.all(WATCHED_SOURCES.map(async (src) => {
-      const url = src.feed || googleNewsUrl(src.query, src.lang);
-      const r = await fetchFeed(url, 10);
+      let r = await fetchFeed(src.feed || googleNewsUrl(src.query, src.lang), 10);
+      // Feed first, Google News query as the fallback (see handleFeeds).
+      if ((!r.items || !r.items.length) && src.feed && src.query) r = await fetchFeed(googleNewsUrl(src.query, src.lang), 10);
       if (!r.items || !r.items.length) return;
       await Promise.all(r.items.map(async (it) => {
         if (it.link && /^https:\/\/news\.google\.com\//.test(it.link)) {
