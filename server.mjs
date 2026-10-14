@@ -598,7 +598,7 @@ const WATCHED_SOURCES = [
   // Singapore Chinese edition (Zaobao/8world/Shin Min) replaces the mainland
   // '人工智能 就业 技能' beat as the daily different-languages leg; the mainland
   // beat stays in the catalog as 'Chinese tech & jobs press'.
-  { name: "SG Chinese press (zh)", query: "(site:zaobao.com.sg OR site:8world.com OR site:shinmin.sg) (裁员 OR 技能培训 OR 技能创前程 OR 零工 OR 退休年龄 OR 人工智能 OR 雇主 OR 中小企业 OR 职场) when:90d", lang: "zh-SG" },
+  { name: "SG Chinese press (zh)", query: "(site:zaobao.com.sg OR site:8world.com OR site:shinmin.sg) (裁员 OR 技能培训 OR 技能创前程 OR 零工 OR 退休年龄 OR 人工智能 OR 雇主 OR 中小企业 OR 职场) when:90d", lang: "zh" },
   { name: 'OECD Education & Skills', query: 'site:oecd.org (skills OR "adult learning" OR "vocational" OR "future of work" OR workforce OR "AI in education") when:180d' },
   // Of-record opinion (academics/practitioners), free in full — replaces the CNA
   // firehose feed, which stays in the catalog as 'Channel NewsAsia'.

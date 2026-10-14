@@ -1,0 +1,325 @@
+1/319 Singapore skills policy                 2/319 MIT Technology Review                   3/319 Channel NewsAsia                        4/319 Ethan Mollick                           5/319 OECD Education & Skills                 6/319 arXiv (Economics)                       7/319 arXiv (Computers & Society)             8/319 Straits Times                           9/319 McKinsey Global Institute               10/319 Carbon Brief                            11/319 Marginal Revolution                     12/319 The Conversation                        13/319 Rest of World                           14/319 World Economic Forum                    15/319 Wired                                   16/319 The Verge                               17/319 TechCrunch                              18/319 HR Dive                                 19/319 VentureBeat AI                          20/319 Restaurant Dive                         21/319 MIT Sloan Management Review             22/319 Chinese tech & jobs press               23/319 IMDA & Smart Nation                     24/319 Indeed Hiring Lab                       25/319 Singapore care workforce                26/319 Hiring practice signals                 27/319 Singapore retail & F&B jobs             28/319 AI in the public service & governance   29/319 Inside Retail Asia                      30/319 Business Times – Opinion & Features     31/319 IEA (energy & jobs)                     32/319 Business Times – Working Life           33/319 Hacker News                             34/319 Care-sector professional bodies: SNA & S35/319 CNA Commentary                          36/319 Carbon services & Climate Impact X      37/319 Josh Bersin                             38/319 Chinese firms landing in Singapore      39/319 CNA TODAY Big Read & CNA Insider        40/319 Business Times – Top stories            41/319 CNA – Singapore section                 42/319 CNA – Business section                  43/319 Construction, marine & aviation labour  44/319 Financial-sector bodies: ABS, IBF & SFA 45/319 EdSurge                                 46/319 Foreign workforce passes & talent flows 47/319 EdgeProp Singapore                      48/319 Data centres, energy & compute limits   49/319 Flexible work, 4-day week & RTO         50/319 HR professional bodies: IHRP & SHRI     51/319 Green jobs, carbon tax & ESG reporting  52/319 Institution of Engineers, Singapore (IES53/319 ISCA (Singapore Chartered Accountants)  54/319 Hawker & F&B automation                 55/319 Mothership                              56/319 JS-SEZ & cross-border labour            57/319 Mature workers, re-employment & CPF     58/319 Lifelong learning take-up behaviour     59/319 Migrant worker welfare & dormitories    60/319 Human Resources Online                  61/319 Platform & gig work after the PWA       62/319 Marketing-Interactive                   63/319 Singapore Institute of Directors (SID)  64/319 Retrenchments & hiring freezes          65/319 SGTech & Singapore Computer Society     66/319 Singapore Law Watch (headlines)         67/319 Singapore Business Review               68/319 Semiconductor & advanced mfg talent     69/319 SME AI & digitalisation adoption        70/319 SME & manufacturing bodies: SMF & ASME  71/319 Straits Times – Opinion                 72/319 Trade associations: RAS, SRA & SLA      73/319 Straits Times – Business                74/319 Straits Times – Tech                    75/319 RICE Media                              76/319 Tertiary intake & curriculum shifts     77/319 Workplace fairness & discrimination     78/319 Workplace mental health & burnout       79/319 Unions & worker voice (NTUC, CTCs)      80/319 Training providers & private education  81/319 HRM Asia                                82/319 Youth, graduates & NEET sentiment       83/319 Yahoo News Singapore                    84/319 Eco-Business                            85/319 Asia Food Journal / FoodNavigator-Asia  86/319 DealStreetAsia                          87/319 GovInsider                              88/319 FutureCIO & FutureIoT                   89/319 India business press (Mint & ET)        90/319 Industrial Automation Asia & APMEN      91/319 Maritime Fairtrade                      92/319 ET HRSEA (ETHRWorld Southeast Asia)     93/319 Malaysia press & JS-SEZ                 94/319 Bangkok Post                            95/319 Mongabay (SE Asia environment)          96/319 Payload Asia & Asian Aviation           97/319 Nikkei Asia                             98/319 Rappler                                 99/319 OpenGov Asia                            100/319 Vulcan Post                             101/319 Retail Asia & Healthcare Asia           102/319 SCMP Tech                               103/319 The Jakarta Post                        104/319 The Diplomat                            105/319 Tech in Asia                            106/319 The Korea Herald                        107/319 Global business press: AI & jobs        108/319 VnExpress International                 109/319 e27                                     110/319 Harvard Business Review                 111/319 Challenge magazine (Public Service Divis112/319 The Japan Times                         113/319 Sixth Tone                              114/319 A*STAR & NRF research-talent news       115/319 TTG Asia                                116/319 BCA, LTA, URA & JTC built-environment ne117/319 EDB, EnterpriseSG & STB media releases  118/319 CSC ETHOS journal & CAST                119/319 DesignSingapore Council & design futures120/319 Splash247                               121/319 Green skills & Skills Framework watch (S122/319 MAS media releases, speeches & consultat123/319 GovTech TechNews                        124/319 MTI newsroom (Economic Survey & ITMs)   125/319 Ministry PQ replies                     126/319 MOE newsroom & parliamentary replies    127/319 MOH, MSF & AIC care-manpower releases   128/319 NTUC newsroom & LabourBeat              129/319 MOM newsroom (press releases & speeches)130/319 PDPC & AI Verify Foundation             131/319 NCCS, Green Plan & MSE/NEA/EMA releases 132/319 PSD newsroom (Public Service HR)        133/319 Parliament sittings via of-record press 134/319 PMO & gov.sg newsroom (incl. Factually) 135/319 PDPC decisions & data-protection (SG)   136/319 SGX/ACRA climate-reporting phase-in watc137/319 Tripartite Alliance (TAFEP / TADM)      138/319 SNEF & SBF employer surveys             139/319 ASEAN regional bodies (ERIA, ESCAP, APEC140/319 SkillsFuture SG & WSG newsroom (house, f141/319 Climate Home News                       142/319 EU JRC Foresight & Megatrends Hub       143/319 ILO Asia-Pacific                        144/319 OECD.AI Policy Observatory              145/319 IPCC assessment & special reports       146/319 ILO newsroom & research                 147/319 AI Singapore                            148/319 AWARE Singapore                         149/319 Asatizah & madrasah workforce (MUIS/PERG150/319 UNESCO (Futures of Education, AI in ed) 151/319 ESI, ERI@N & CNCS (energy/climate instit152/319 GCNS & Singapore Sustainability Academy 153/319 Centre for Liveable Cities              154/319 Future Generations Commissioner for Wale155/319 NUS IPUR (public understanding of risk) 156/319 IPS Commons                             157/319 RSIS Commentaries & Publications        158/319 IPS (LKYSPP) reports, surveys & Prism   159/319 SEAS & SG clean-energy workforce        160/319 NUS Centre for Future-ready Graduates   161/319 UK GO-Science & MOD foresight (gov.uk)  162/319 SG Green Finance Centre & SSFA          163/319 Tsao Foundation / ILC Singapore         164/319 SGBC & Green Mark skills                165/319 SINDA newsroom & Indian-community progra166/319 SG social-service & ageing ecosystem    167/319 WWF-SG, SEC & SG Eco Fund (civic green) 168/319 Temasek Ecosperity                      169/319 Yayasan MENDAKI research & Policy Digest170/319 ISEAS Fulcrum                           171/319 SUSS Centre for Applied Research        172/319 Lien Centre for Social Innovation (SMU) 173/319 Hinrich Foundation                      174/319 East Asia Forum                         175/319 Asian Development Blog (ADB & ADBI)     176/319 SIIA Insights & Commentaries            177/319 The HEAD Foundation                     178/319 Education International — news & researc179/319 Brookings (workforce, AI & education)   180/319 UNDP Asia-Pacific futures & signals     181/319 Data & Society                          182/319 ISEAS Perspective                       183/319 Finland Futures Research Centre (Turku) 184/319 Future of Privacy Forum                 185/319 Nesta (Discovery Hub & Future Signals)  186/319 The Millennium Project                  187/319 Pew Research Center (work, AI & society)188/319 AlgorithmWatch                          189/319 RAND — labour markets, education & AI   190/319 UNU-CPR & Future Design (Osaka Universit191/319 Stanford Center on Longevity            192/319 UK labour think tanks (Resolution Fdn, T193/319 WEF Strategic Intelligence & Global Risk194/319 Accenture, EY & KPMG – SG workforce stud195/319 World Bank & IMF blogs (jobs, education,196/319 Robert Walters & Hays – Singapore job ma197/319 SG law-firm employment & AI updates     198/319 McKinsey – Singapore & Southeast Asia   199/319 SG & ASEAN bank economists              200/319 Staffing & HR surveys, Singapore cuts   201/319 Korn Ferry Institute & Korn Ferry Singap202/319 Arup Foresight & Insights               203/319 Ada Lovelace Institute                  204/319 Future Today Strategy Group (Amy Webb)  205/319 AI-lab work & economy research          206/319 BCG Henderson Institute & Bain          207/319 Learning-platform skills reports        208/319 Gallup Workplace                        209/319 Law Gazette (Law Society of Singapore)  210/319 McKinsey – Future of Work & AI at work  211/319 Big Four workforce surveys (PwC, Deloitt212/319 Institute for Adult Learning research   213/319 NIE SingTeach & NTU research news       214/319 Asia Pacific Journal of Human Resources 215/319 SMU Research & Resilient Workforces Inst216/319 NUS News & Thought Leadership           217/319 arXiv cs.HC (Human-Computer Interaction)218/319 Computers & Education: AI (journal)     219/319 Futures (Elsevier journal)              220/319 SMU ROSA / Singapore Life Panel         221/319 Big Data & Society                      222/319 Business-school reviews (Wharton, LSE)  223/319 Intl Journal of Training and Development224/319 RePEc NEP-SEA (Southeast Asia papers)   225/319 INSEAD Knowledge (Singapore campus)     226/319 Asia Pacific Journal of Education       227/319 Journal of Education and Work           228/319 ILR Review                              229/319 NUS Social Service Research Centre      230/319 Journal of Vocational Education & Traini231/319 New Technology, Work and Employment     232/319 Technological Forecasting & Social Chang233/319 RePEc NEP-LAB: new labour economics pape234/319 Journal of Vocational Behavior          235/319 Work, Employment and Society            236/319 Oxford Internet Institute & Oxford Marti237/319 VoxEU columns (CEPR)                    238/319 Stanford HAI & MIT IDE (AI-and-work)    239/319 Singapore foresight thinkers: op-eds & t240/319 Academia.SG (Academic Views)            241/319 Jom (weekly magazine)                   242/319 Journal of Futures Studies              243/319 Nature Human Behaviour                  244/319 Dollars and Sense                       245/319 Open Government Products (Substack)     246/319 AI Snake Oil (Narayanan & Kapoor)       247/319 ChinAI Newsletter                       248/319 Exponential View (Azeem Azhar)          249/319 Import AI (Jack Clark)                  250/319 Postnormal Times / CPPFS (Ziauddin Sarda251/319 We, The Citizens (Kirsten Han)          252/319 Benedict Evans                          253/319 NBER New Working Papers                 254/319 HardwareZone EDMW forum                 255/319 Stratechery (Ben Thompson)              256/319 Tech Policy Press                       257/319 Milieu Insight                          258/319 The Cynefin Company — Dave Snowden blog 259/319 Blackbox Research – Sensing SG          260/319 Reddit r/SGExams                        261/319 Reddit r/singapore                      262/319 Reddit r/singaporefi                    263/319 Singapore Expats forum                  264/319 REACH (government feedback unit)        265/319 ST podcasts: Money & Career / Usual Plac266/319 CNA podcasts: Work It / HotM / Deep Dive267/319 Straits Times Forum letters             268/319 TWC2 (migrant worker stories)           269/319 Reddit r/askSingapore                   270/319 8world 8视界新闻 (zh)                       271/319 Berita Harian – usahawan & gig economy (272/319 SG opinion polls & surveys              273/319 Lianhe Zaobao 联合早报 – Singapore news     274/319 Pluralistic (Cory Doctorow)             275/319 Berita Harian – Rencana & letters (ms)  276/319 SCCCI 新加坡中华总商会                          277/319 SG Chinese press (zh)                   278/319 Berita Harian (ms)                      279/319 Berita Mediacorp – Malay news (ms)      280/319 Seithi – Mediacorp Tamil news (ta)      281/319 Zaobao 言论 commentary & 交流站 letters      282/319 Mainland Chinese press on Singapore (zh)283/319 Shin Min Daily News 新明日报 (zh)           284/319 Tamil Murasu – jobs, workers & skills (t285/319 Kompas (Bahasa Indonesia)               286/319 Malaysian Malay press on SG jobs (ms)   287/319 Centre for Strategic Futures (CSF)      288/319 澎湃新闻 (The Paper)                        289/319 CTRL+ALT+FUTURE (MDDI signals)          290/319 Futuribles (fr)                         291/319 NUS Futures Office                      292/319 Asia Pacific Futures Network (APFN)     293/319 Futures Centre (Forum for the Future)   294/319 Tamil Nadu press on Singapore jobs (ta) 295/319 SUTD LKY Centre for Innovative Cities   296/319 Institute for the Future (IFTF)         297/319 SOIF & Next Gen Foresight Practitioners 298/319 Policy Horizons Canada                  299/319 The Long Now Foundation — Ideas & Talks 300/319 CPF Board statistics & annual report    301/319 Graduate Employment Surveys (AU/Poly/ITE302/319 UNDP (Asia-Pacific & Singapore Centre)  303/319 MAS Macroeconomic Review – labour & wage304/319 JobStreet/Jobsdb by SEEK – SG hiring dat305/319 MOM Manpower Research & Statistics (MRSD306/319 Indeed Hiring Lab – Singapore & APAC    307/319 36氪 (36Kr)                              308/319 SCCCI Annual Business Survey (en)       309/319 SCCB Business Optimism Index            310/319 SG hiring, wages & vacancies data (catch311/319 SSG Jobs-Skills Insights (house)        312/319 SkillsFuture Credit & training take-up  313/319 SingStat latest releases                314/319 Springwise (innovation signals)         315/319 Alt-data labour analytics (Revelio et al316/319 Burning Glass Institute                 317/319 LinkedIn Economic Graph (incl. Singapore318/319 Sitra (Megatrends & weak signals)       319/319 Seedly blog & community                 
+
+SOURCE                                        D  RESULT  FEED (direct)                          FALLBACK (Google News)              
+arXiv (Computers & Society)                   *  PASS   ok 77 items, newest 0d                 -                                    
+CNA Commentary                                *  PASS   -                                      ok 100 items, newest 0d              
+Eco-Business                                  *  PASS   ok 40 items, newest 0d                 ok 53 items, newest 1d               
+Ethan Mollick                                 *  PASS   ok 20 items, newest 13d                -                                    
+ISEAS Fulcrum                                 *  PASS   ok 10 items, newest 0d                 ok 76 items, newest 0d               
+McKinsey Global Institute                     *  PASS   ok 50 items, newest 1d                 -                                    
+Mothership                                    *  PASS   ok 10 items, newest 0d                 ok 100 items, newest 0d              
+OECD Education & Skills                       *  PASS   -                                      ok 100 items, newest 3d              
+SG Chinese press (zh)                         *  FAIL   -                                      FAIL feed parsed but 0 items         
+Singapore skills policy                       *  PASS   -                                      ok 100 items, newest 0d              
+36氪 (36Kr)                                       PASS   FAIL HTML page, not a feed             ok 100 items, newest 0d              
+8world 8视界新闻 (zh)                                FAIL   -                                      FAIL feed parsed but 0 items         
+A*STAR & NRF research-talent news                PASS   -                                      ok 100 items, newest 3d              
+Academia.SG (Academic Views)                     PASS   ok 10 items, newest 13d                ok 18 items, newest 13d              
+Accenture, EY & KPMG – SG workforce studies      PASS   -                                      ok 69 items, newest 2d               
+Ada Lovelace Institute                           PASS   FAIL feed parsed but 0 items           ok 3 items, newest 78d               
+AI in the public service & governance            PASS   -                                      ok 100 items, newest 0d              
+AI Singapore                                     PASS   -                                      ok 5 items, newest 4d                
+AI Snake Oil (Narayanan & Kapoor)                PASS   ok 20 items, newest 13d                ok 21 items, newest 5d               
+AI-lab work & economy research                   PASS   -                                      ok 70 items, newest 0d               
+AlgorithmWatch                                   PASS   ok 10 items, newest 12d                ok 1 items, newest 167d              
+Alt-data labour analytics (Revelio et al.)       PASS   -                                      ok 48 items, newest 1d               
+Arup Foresight & Insights                        PASS   -                                      ok 100 items, newest 0d              
+arXiv (Economics)                                PASS   ok 23 items, newest 0d                 -                                    
+arXiv cs.HC (Human-Computer Interaction)         PASS   ok 86 items, newest 0d                 -                                    
+Asatizah & madrasah workforce (MUIS/PERGAS)      PASS   -                                      ok 67 items, newest 42d              
+ASEAN regional bodies (ERIA, ESCAP, APEC)        PASS   -                                      ok 100 items, newest 0d              
+Asia Food Journal / FoodNavigator-Asia           PASS   -                                      ok 100 items, newest 0d              
+Asia Pacific Futures Network (APFN)              FAIL   -                                      FAIL feed parsed but 0 items         
+Asia Pacific Journal of Education                PASS   ok 209 items, newest ?                 -                                    
+Asia Pacific Journal of Human Resources          PASS   ok 6 items, newest 1d                  -                                    
+Asian Development Blog (ADB & ADBI)              PASS   -                                      ok 100 items, newest 0d              
+AWARE Singapore                                  PASS   ok 10 items, newest 41d                FAIL feed parsed but 0 items         
+Bangkok Post                                     PASS   ok 10 items, newest 0d                 ok 100 items, newest 0d              
+BCA, LTA, URA & JTC built-environment news       PASS   -                                      ok 100 items, newest 2d              
+BCG Henderson Institute & Bain                   PASS   -                                      ok 100 items, newest 1d              
+Benedict Evans                                   PASS   ok 20 items, newest 41d                ok 10 items, newest 64d              
+Berita Harian – Rencana & letters (ms)           PASS   -                                      ok 100 items, newest 4d              
+Berita Harian – usahawan & gig economy (ms)      PASS   -                                      ok 100 items, newest 0d              
+Berita Harian (ms)                               PASS   -                                      ok 100 items, newest 0d              
+Berita Mediacorp – Malay news (ms)               PASS   ok 20 items, newest 0d                 ok 100 items, newest 0d              
+Big Data & Society                               PASS   ok 1 items, newest ?                   -                                    
+Big Four workforce surveys (PwC, Deloitte)       PASS   -                                      ok 100 items, newest 1d              
+Blackbox Research – Sensing SG                   PASS   FAIL fetch failed                      ok 6 items, newest 1d                
+Brookings (workforce, AI & education)            PASS   FAIL HTML page, not a feed             ok 100 items, newest 2d              
+Burning Glass Institute                          PASS   -                                      ok 100 items, newest 2d              
+Business Times – Opinion & Features              PASS   -                                      ok 100 items, newest 0d              
+Business Times – Top stories                     PASS   ok 14 items, newest 0d                 ok 100 items, newest 0d              
+Business Times – Working Life                    PASS   -                                      ok 100 items, newest 0d              
+Business-school reviews (Wharton, LSE)           PASS   -                                      ok 100 items, newest 1d              
+Carbon Brief                                     PASS   ok 12 items, newest 2d                 -                                    
+Carbon services & Climate Impact X               PASS   -                                      ok 80 items, newest 6d               
+Care-sector professional bodies: SNA & SMA       PASS   -                                      ok 1 items, newest 111d              
+Centre for Liveable Cities                       PASS   -                                      ok 28 items, newest 51d              
+Centre for Strategic Futures (CSF)               PASS   -                                      ok 12 items, newest 20d              
+Challenge magazine (Public Service Division)     PASS   -                                      ok 32 items, newest 7d               
+Channel NewsAsia                                 PASS   ok 20 items, newest 0d                 -                                    
+ChinAI Newsletter                                PASS   ok 20 items, newest 2d                 ok 22 items, newest 14d              
+Chinese firms landing in Singapore               PASS   -                                      ok 84 items, newest 6d               
+Chinese tech & jobs press                        PASS   -                                      ok 100 items, newest 0d              
+Climate Home News                                PASS   ok 40 items, newest 1d                 ok 94 items, newest 1d               
+CNA – Business section                           PASS   ok 20 items, newest 0d                 ok 100 items, newest 0d              
+CNA – Singapore section                          PASS   ok 20 items, newest 0d                 ok 100 items, newest 0d              
+CNA podcasts: Work It / HotM / Deep Dive         PASS   -                                      ok 100 items, newest 0d              
+CNA TODAY Big Read & CNA Insider                 PASS   -                                      ok 100 items, newest 0d              
+Computers & Education: AI (journal)              PASS   ok 100 items, newest ?                 -                                    
+Construction, marine & aviation labour           PASS   -                                      ok 100 items, newest 2d              
+CPF Board statistics & annual report             PASS   -                                      ok 42 items, newest 0d               
+CSC ETHOS journal & CAST                         PASS   -                                      ok 100 items, newest 83d             
+CTRL+ALT+FUTURE (MDDI signals)                   FAIL   -                                      FAIL feed parsed but 0 items         
+Data & Society                                   PASS   FAIL feed parsed but 0 items           ok 10 items, newest 4d               
+Data centres, energy & compute limits            PASS   -                                      ok 100 items, newest 0d              
+DealStreetAsia                                   PASS   FAIL HTTP 503                          ok 6 items, newest 8d                
+DesignSingapore Council & design futures         PASS   -                                      ok 10 items, newest 34d              
+Dollars and Sense                                PASS   ok 10 items, newest 0d                 ok 100 items, newest 0d              
+e27                                              PASS   ok 50 items, newest 0d                 ok 100 items, newest 0d              
+East Asia Forum                                  PASS   FAIL HTTP 403                          ok 100 items, newest 1d              
+EDB, EnterpriseSG & STB media releases           PASS   -                                      ok 100 items, newest 2d              
+EdgeProp Singapore                               PASS   -                                      ok 100 items, newest 0d              
+EdSurge                                          PASS   ok 50 items, newest 1d                 -                                    
+Education International — news & research        PASS   -                                      ok 12 items, newest 2d               
+ESI, ERI@N & CNCS (energy/climate institutes     PASS   -                                      ok 9 items, newest 7d                
+ET HRSEA (ETHRWorld Southeast Asia)              PASS   ok 10 items, newest 1d                 ok 62 items, newest 0d               
+EU JRC Foresight & Megatrends Hub                PASS   -                                      ok 100 items, newest 13d             
+Exponential View (Azeem Azhar)                   PASS   ok 20 items, newest 2d                 ok 61 items, newest 2d               
+Financial-sector bodies: ABS, IBF & SFA          PASS   -                                      ok 39 items, newest 9d               
+Finland Futures Research Centre (Turku)          PASS   -                                      ok 100 items, newest 1d              
+Flexible work, 4-day week & RTO                  PASS   -                                      ok 72 items, newest 0d               
+Foreign workforce passes & talent flows          PASS   -                                      ok 74 items, newest 2d               
+Future Generations Commissioner for Wales        PASS   ok 5 items, newest 593d                ok 2 items, newest 8d                
+Future of Privacy Forum                          PASS   ok 10 items, newest 2d                 ok 71 items, newest 2d               
+Future Today Strategy Group (Amy Webb)           PASS   -                                      ok 13 items, newest 2d               
+FutureCIO & FutureIoT                            PASS   -                                      ok 88 items, newest 0d               
+Futures (Elsevier journal)                       PASS   ok 35 items, newest ?                  -                                    
+Futures Centre (Forum for the Future)            PASS   -                                      ok 2 items, newest 27d               
+Futuribles (fr)                                  PASS   -                                      ok 65 items, newest 0d               
+Gallup Workplace                                 PASS   -                                      ok 100 items, newest 0d              
+GCNS & Singapore Sustainability Academy          PASS   -                                      ok 7 items, newest 6d                
+Global business press: AI & jobs                 PASS   -                                      ok 100 items, newest 0d              
+GovInsider                                       PASS   -                                      ok 100 items, newest 0d              
+GovTech TechNews                                 PASS   -                                      ok 100 items, newest 0d              
+Graduate Employment Surveys (AU/Poly/ITE)        PASS   -                                      ok 10 items, newest 91d              
+Green jobs, carbon tax & ESG reporting           PASS   -                                      ok 89 items, newest 2d               
+Green skills & Skills Framework watch (SG)       PASS   -                                      ok 43 items, newest 42d              
+Hacker News                                      PASS   ok 20 items, newest 0d                 -                                    
+HardwareZone EDMW forum                          PASS   ok 20 items, newest 0d                 -                                    
+Harvard Business Review                          PASS   FAIL fetch failed                      ok 100 items, newest 1d              
+Hawker & F&B automation                          PASS   -                                      ok 77 items, newest 3d               
+Hinrich Foundation                               PASS   -                                      ok 100 items, newest 0d              
+Hiring practice signals                          PASS   -                                      ok 82 items, newest 0d               
+HR Dive                                          PASS   ok 10 items, newest 1d                 -                                    
+HR professional bodies: IHRP & SHRI              PASS   -                                      ok 10 items, newest 19d              
+HRM Asia                                         PASS   ok 30 items, newest 0d                 ok 35 items, newest 0d               
+Human Resources Online                           PASS   FAIL HTTP 404                          ok 100 items, newest 0d              
+IEA (energy & jobs)                              PASS   -                                      ok 100 items, newest 1d              
+ILO Asia-Pacific                                 PASS   -                                      ok 100 items, newest 0d              
+ILO newsroom & research                          PASS   -                                      ok 100 items, newest 0d              
+ILR Review                                       PASS   ok 32 items, newest ?                  ok 10 items, newest 15d              
+IMDA & Smart Nation                              PASS   -                                      ok 100 items, newest 0d              
+Import AI (Jack Clark)                           PASS   ok 20 items, newest 2d                 ok 46 items, newest 0d               
+Indeed Hiring Lab                                PASS   ok 10 items, newest 12d                -                                    
+Indeed Hiring Lab – Singapore & APAC             PASS   -                                      ok 88 items, newest 3d               
+India business press (Mint & ET)                 PASS   -                                      ok 99 items, newest 0d               
+Industrial Automation Asia & APMEN               PASS   -                                      ok 9 items, newest 16d               
+INSEAD Knowledge (Singapore campus)              PASS   -                                      ok 28 items, newest 2d               
+Inside Retail Asia                               PASS   ok 10 items, newest 0d                 -                                    
+Institute for Adult Learning research            PASS   -                                      ok 48 items, newest 3d               
+Institute for the Future (IFTF)                  PASS   -                                      ok 3 items, newest 22d               
+Institution of Engineers, Singapore (IES)        PASS   -                                      ok 22 items, newest 1d               
+Intl Journal of Training and Development         PASS   ok 25 items, newest 11d                -                                    
+IPCC assessment & special reports                PASS   -                                      ok 35 items, newest 2d               
+IPS (LKYSPP) reports, surveys & Prism            PASS   -                                      ok 100 items, newest 0d              
+IPS Commons                                      PASS   -                                      ok 2 items, newest 35d               
+ISCA (Singapore Chartered Accountants)           PASS   -                                      ok 25 items, newest 27d              
+ISEAS Perspective                                PASS   ok 10 items, newest 7d                 ok 100 items, newest 1d              
+JobStreet/Jobsdb by SEEK – SG hiring data        PASS   -                                      ok 12 items, newest 71d              
+Jom (weekly magazine)                            PASS   ok 15 items, newest 5d                 ok 44 items, newest 5d               
+Josh Bersin                                      PASS   ok 834 items, newest 1d                -                                    
+Journal of Education and Work                    PASS   ok 13 items, newest ?                  -                                    
+Journal of Futures Studies                       PASS   ok 10 items, newest 7d                 ok 2 items, newest 29d               
+Journal of Vocational Behavior                   PASS   ok 8 items, newest ?                   -                                    
+Journal of Vocational Education & Training       PASS   ok 54 items, newest ?                  -                                    
+JS-SEZ & cross-border labour                     PASS   -                                      ok 83 items, newest 1d               
+Kompas (Bahasa Indonesia)                        PASS   -                                      ok 100 items, newest 0d              
+Korn Ferry Institute & Korn Ferry Singapore      PASS   -                                      ok 39 items, newest 1d               
+Law Gazette (Law Society of Singapore)           PASS   -                                      ok 5 items, newest 22d               
+Learning-platform skills reports                 PASS   -                                      ok 100 items, newest 6d              
+Lianhe Zaobao 联合早报 – Singapore news              FAIL   -                                      FAIL feed parsed but 0 items         
+Lien Centre for Social Innovation (SMU)          PASS   ok 20 items, newest 1848d              FAIL feed parsed but 0 items         
+Lifelong learning take-up behaviour              PASS   -                                      ok 63 items, newest 1d               
+LinkedIn Economic Graph (incl. Singapore)        PASS   -                                      ok 54 items, newest 1d               
+Mainland Chinese press on Singapore (zh)         PASS   -                                      ok 60 items, newest 1d               
+Malaysia press & JS-SEZ                          PASS   -                                      ok 100 items, newest 0d              
+Malaysian Malay press on SG jobs (ms)            PASS   -                                      ok 100 items, newest 0d              
+Marginal Revolution                              PASS   ok 15 items, newest 0d                 -                                    
+Maritime Fairtrade                               FAIL   -                                      FAIL feed parsed but 0 items         
+Marketing-Interactive                            PASS   -                                      ok 100 items, newest 0d              
+MAS Macroeconomic Review – labour & wages        PASS   -                                      ok 8 items, newest 0d                
+MAS media releases, speeches & consultations     PASS   -                                      ok 100 items, newest 0d              
+Mature workers, re-employment & CPF              PASS   -                                      ok 46 items, newest 0d               
+McKinsey – Future of Work & AI at work           PASS   -                                      ok 100 items, newest 0d              
+McKinsey – Singapore & Southeast Asia            PASS   -                                      ok 67 items, newest 1d               
+Migrant worker welfare & dormitories             PASS   -                                      ok 32 items, newest 78d              
+Milieu Insight                                   PASS   -                                      ok 4 items, newest 8d                
+Ministry PQ replies                              PASS   -                                      ok 100 items, newest 7d              
+MIT Sloan Management Review                      PASS   ok 20 items, newest 0d                 -                                    
+MIT Technology Review                            PASS   ok 10 items, newest 0d                 -                                    
+MOE newsroom & parliamentary replies             PASS   -                                      ok 100 items, newest 2d              
+MOH, MSF & AIC care-manpower releases            PASS   -                                      ok 100 items, newest 2d              
+MOM Manpower Research & Statistics (MRSD)        PASS   -                                      ok 100 items, newest 2d              
+MOM newsroom (press releases & speeches)         PASS   -                                      ok 100 items, newest 3d              
+Mongabay (SE Asia environment)                   PASS   ok 32 items, newest 0d                 ok 100 items, newest 1d              
+MTI newsroom (Economic Survey & ITMs)            PASS   -                                      ok 10 items, newest 1d               
+Nature Human Behaviour                           PASS   ok 8 items, newest ?                   ok 32 items, newest 0d               
+NBER New Working Papers                          PASS   ok 22 items, newest ?                  ok 88 items, newest 8d               
+NCCS, Green Plan & MSE/NEA/EMA releases          PASS   -                                      ok 100 items, newest 1d              
+Nesta (Discovery Hub & Future Signals)           PASS   -                                      ok 75 items, newest 1d               
+New Technology, Work and Employment              PASS   ok 33 items, newest 6d                 -                                    
+NIE SingTeach & NTU research news                PASS   -                                      ok 100 items, newest 1d              
+Nikkei Asia                                      PASS   ok 50 items, newest ?                  ok 100 items, newest 0d              
+NTUC newsroom & LabourBeat                       PASS   -                                      ok 100 items, newest 1d              
+NUS Centre for Future-ready Graduates            PASS   -                                      ok 100 items, newest 1d              
+NUS Futures Office                               FAIL   -                                      FAIL feed parsed but 0 items         
+NUS IPUR (public understanding of risk)          PASS   -                                      ok 6 items, newest 71d               
+NUS News & Thought Leadership                    PASS   -                                      ok 100 items, newest 2d              
+NUS Social Service Research Centre               PASS   FAIL HTTP 500                          ok 3 items, newest 76d               
+OECD.AI Policy Observatory                       PASS   -                                      ok 60 items, newest 2d               
+Open Government Products (Substack)              PASS   ok 20 items, newest 35d                ok 4 items, newest 4d                
+OpenGov Asia                                     PASS   ok 16 items, newest 1d                 ok 100 items, newest 0d              
+Oxford Internet Institute & Oxford Martin        PASS   -                                      ok 29 items, newest 1d               
+Parliament sittings via of-record press          PASS   -                                      ok 100 items, newest 0d              
+Payload Asia & Asian Aviation                    PASS   -                                      ok 65 items, newest 1d               
+PDPC & AI Verify Foundation                      PASS   -                                      ok 31 items, newest 18d              
+PDPC decisions & data-protection (SG)            PASS   -                                      ok 68 items, newest 1d               
+Pew Research Center (work, AI & society)         PASS   ok 100 items, newest 0d                ok 100 items, newest 5d              
+Platform & gig work after the PWA                PASS   -                                      ok 49 items, newest 0d               
+Pluralistic (Cory Doctorow)                      PASS   ok 30 items, newest 1d                 ok 100 items, newest 2d              
+PMO & gov.sg newsroom (incl. Factually)          PASS   -                                      ok 38 items, newest 2d               
+Policy Horizons Canada                           PASS   -                                      ok 100 items, newest 1d              
+Postnormal Times / CPPFS (Ziauddin Sardar)       PASS   -                                      ok 1 items, newest 157d              
+PSD newsroom (Public Service HR)                 PASS   -                                      ok 46 items, newest 7d               
+RAND — labour markets, education & AI            PASS   FAIL feed parsed but 0 items           ok 100 items, newest 1d              
+Rappler                                          PASS   ok 10 items, newest 0d                 FAIL feed parsed but 0 items         
+REACH (government feedback unit)                 PASS   -                                      ok 9 items, newest 7d                
+Reddit r/askSingapore                            PASS   ok 25 items, newest 0d                 -                                    
+Reddit r/SGExams                                 FAIL   FAIL HTTP 429                          -                                    
+Reddit r/singapore                               FAIL   FAIL HTTP 429                          -                                    
+Reddit r/singaporefi                             FAIL   FAIL HTTP 429                          -                                    
+RePEc NEP-LAB: new labour economics papers       FAIL   FAIL HTTP 404                          -                                    
+RePEc NEP-SEA (Southeast Asia papers)            FAIL   FAIL HTTP 404                          -                                    
+Rest of World                                    PASS   ok 12 items, newest 0d                 -                                    
+Restaurant Dive                                  PASS   ok 10 items, newest 0d                 -                                    
+Retail Asia & Healthcare Asia                    PASS   -                                      ok 100 items, newest 0d              
+Retrenchments & hiring freezes                   PASS   -                                      ok 96 items, newest 0d               
+RICE Media                                       PASS   ok 10 items, newest 5d                 ok 46 items, newest 5d               
+Robert Walters & Hays – Singapore job market     PASS   -                                      ok 10 items, newest 2d               
+RSIS Commentaries & Publications                 PASS   FAIL HTTP 403                          ok 100 items, newest 0d              
+SCCB Business Optimism Index                     PASS   -                                      ok 37 items, newest 1d               
+SCCCI Annual Business Survey (en)                PASS   -                                      ok 9 items, newest 54d               
+SCCCI 新加坡中华总商会                                   FAIL   -                                      FAIL feed parsed but 0 items         
+SCMP Tech                                        PASS   -                                      ok 100 items, newest 0d              
+SEAS & SG clean-energy workforce                 PASS   -                                      ok 71 items, newest 2d               
+Seedly blog & community                          PASS   ok 3440 items, newest 22d              ok 100 items, newest 1d              
+Seithi – Mediacorp Tamil news (ta)               PASS   ok 20 items, newest 0d                 ok 81 items, newest 0d               
+Semiconductor & advanced mfg talent              PASS   -                                      ok 100 items, newest 0d              
+SG & ASEAN bank economists                       PASS   -                                      ok 63 items, newest 23d              
+SG Green Finance Centre & SSFA                   PASS   -                                      ok 7 items, newest 7d                
+SG hiring, wages & vacancies data (catch-all     PASS   -                                      ok 76 items, newest 36d              
+SG law-firm employment & AI updates              PASS   -                                      ok 100 items, newest 0d              
+SG opinion polls & surveys                       PASS   -                                      ok 80 items, newest 29d              
+SG social-service & ageing ecosystem             PASS   -                                      ok 50 items, newest 44d              
+SGBC & Green Mark skills                         PASS   -                                      ok 52 items, newest 0d               
+SGTech & Singapore Computer Society              PASS   -                                      ok 4 items, newest 1d                
+SGX/ACRA climate-reporting phase-in watch        PASS   -                                      ok 60 items, newest 56d              
+Shin Min Daily News 新明日报 (zh)                    FAIL   -                                      FAIL feed parsed but 0 items         
+SIIA Insights & Commentaries                     PASS   -                                      ok 38 items, newest 1d               
+SINDA newsroom & Indian-community programmes     PASS   -                                      ok 55 items, newest 1d               
+Singapore Business Review                        PASS   -                                      ok 100 items, newest 0d              
+Singapore care workforce                         PASS   -                                      ok 72 items, newest 0d               
+Singapore Expats forum                           FAIL   FAIL HTTP 403                          -                                    
+Singapore foresight thinkers: op-eds & talks     PASS   -                                      ok 3 items, newest 83d               
+Singapore Institute of Directors (SID)           PASS   -                                      ok 38 items, newest 9d               
+Singapore Law Watch (headlines)                  PASS   -                                      ok 46 items, newest 0d               
+Singapore retail & F&B jobs                      PASS   -                                      ok 65 items, newest 0d               
+SingStat latest releases                         PASS   -                                      ok 100 items, newest 0d              
+Sitra (Megatrends & weak signals)                PASS   ok 12 items, newest 15d                ok 61 items, newest 14d              
+Sixth Tone                                       PASS   ok 51 items, newest 1d                 ok 55 items, newest 1d               
+SkillsFuture Credit & training take-up           PASS   -                                      ok 20 items, newest 247d             
+SkillsFuture SG & WSG newsroom (house, flag)     PASS   -                                      ok 100 items, newest 1d              
+SME & manufacturing bodies: SMF & ASME           PASS   -                                      ok 32 items, newest 5d               
+SME AI & digitalisation adoption                 PASS   -                                      ok 74 items, newest 8d               
+SMU Research & Resilient Workforces Institut     PASS   -                                      ok 58 items, newest 0d               
+SMU ROSA / Singapore Life Panel                  PASS   ok 20 items, newest 160d               ok 8 items, newest 7d                
+SNEF & SBF employer surveys                      PASS   -                                      ok 100 items, newest 20d             
+SOIF & Next Gen Foresight Practitioners          PASS   -                                      ok 2 items, newest 20d               
+Splash247                                        PASS   ok 10 items, newest 0d                 ok 100 items, newest 0d              
+Springwise (innovation signals)                  PASS   FAIL HTML page, not a feed             ok 33 items, newest 0d               
+SSG Jobs-Skills Insights (house)                 PASS   -                                      ok 6 items, newest 7d                
+ST podcasts: Money & Career / Usual Place        PASS   -                                      ok 28 items, newest 0d               
+Staffing & HR surveys, Singapore cuts            PASS   -                                      ok 61 items, newest 1d               
+Stanford Center on Longevity                     PASS   -                                      ok 100 items, newest 0d              
+Stanford HAI & MIT IDE (AI-and-work)             PASS   -                                      ok 60 items, newest 65d              
+Straits Times                                    PASS   ok 50 items, newest 0d                 -                                    
+Straits Times – Business                         PASS   ok 42 items, newest 0d                 ok 100 items, newest 0d              
+Straits Times – Opinion                          PASS   ok 21 items, newest 0d                 ok 100 items, newest 0d              
+Straits Times – Tech                             PASS   FAIL HTTP 400                          ok 100 items, newest 0d              
+Straits Times Forum letters                      PASS   -                                      ok 100 items, newest 0d              
+Stratechery (Ben Thompson)                       PASS   ok 10 items, newest 0d                 ok 7 items, newest 40d               
+SUSS Centre for Applied Research                 PASS   -                                      ok 100 items, newest 3d              
+SUTD LKY Centre for Innovative Cities            PASS   -                                      ok 100 items, newest 2d              
+Tamil Murasu – jobs, workers & skills (ta)       PASS   -                                      ok 100 items, newest 0d              
+Tamil Nadu press on Singapore jobs (ta)          PASS   -                                      ok 100 items, newest 0d              
+Tech in Asia                                     PASS   ok 36 items, newest 0d                 ok 100 items, newest 0d              
+Tech Policy Press                                PASS   FAIL HTML page, not a feed             ok 100 items, newest 1d              
+TechCrunch                                       PASS   ok 20 items, newest 0d                 -                                    
+Technological Forecasting & Social Change        PASS   ok 58 items, newest ?                  -                                    
+Temasek Ecosperity                               PASS   -                                      ok 8 items, newest 47d               
+Tertiary intake & curriculum shifts              PASS   -                                      ok 76 items, newest 7d               
+The Conversation                                 PASS   ok 50 items, newest 0d                 -                                    
+The Cynefin Company — Dave Snowden blog          PASS   -                                      ok 6 items, newest 14d               
+The Diplomat                                     PASS   ok 96 items, newest 1d                 ok 100 items, newest 0d              
+The HEAD Foundation                              PASS   -                                      ok 4 items, newest 98d               
+The Jakarta Post                                 PASS   -                                      ok 100 items, newest 0d              
+The Japan Times                                  PASS   ok 30 items, newest 0d                 ok 100 items, newest 0d              
+The Korea Herald                                 PASS   -                                      ok 100 items, newest 0d              
+The Long Now Foundation — Ideas & Talks          PASS   -                                      ok 12 items, newest 34d              
+The Millennium Project                           PASS   -                                      ok 4 items, newest 7d                
+The Verge                                        PASS   ok 10 items, newest 0d                 -                                    
+Trade associations: RAS, SRA & SLA               PASS   -                                      ok 8 items, newest 14d               
+Training providers & private education           PASS   -                                      ok 25 items, newest 83d              
+Tripartite Alliance (TAFEP / TADM)               PASS   -                                      ok 15 items, newest 58d              
+Tsao Foundation / ILC Singapore                  FAIL   -                                      FAIL feed parsed but 0 items         
+TTG Asia                                         PASS   ok 10 items, newest 0d                 ok 100 items, newest 1d              
+TWC2 (migrant worker stories)                    PASS   ok 10 items, newest 3d                 ok 46 items, newest 5d               
+UK GO-Science & MOD foresight (gov.uk)           PASS   ok 10 items, newest 1d                 ok 100 items, newest 1d              
+UK labour think tanks (Resolution Fdn, TBI)      PASS   -                                      ok 79 items, newest 2d               
+UNDP (Asia-Pacific & Singapore Centre)           PASS   -                                      ok 100 items, newest 1d              
+UNDP Asia-Pacific futures & signals              PASS   -                                      ok 100 items, newest 1d              
+UNESCO (Futures of Education, AI in ed)          PASS   -                                      ok 100 items, newest 0d              
+Unions & worker voice (NTUC, CTCs)               PASS   -                                      ok 100 items, newest 1d              
+UNU-CPR & Future Design (Osaka University)       FAIL   -                                      FAIL feed parsed but 0 items         
+VentureBeat AI                                   FAIL   FAIL HTTP 429                          -                                    
+VnExpress International                          PASS   ok 60 items, newest 0d                 ok 100 items, newest 0d              
+VoxEU columns (CEPR)                             PASS   -                                      ok 100 items, newest 1d              
+Vulcan Post                                      PASS   ok 10 items, newest 1d                 ok 81 items, newest 1d               
+We, The Citizens (Kirsten Han)                   PASS   FAIL HTTP 404                          ok 10 items, newest 16d              
+WEF Strategic Intelligence & Global Risks        PASS   -                                      ok 100 items, newest 0d              
+Wired                                            PASS   ok 50 items, newest 0d                 -                                    
+Work, Employment and Society                     PASS   ok 67 items, newest ?                  -                                    
+Workplace fairness & discrimination              PASS   -                                      ok 45 items, newest 0d               
+Workplace mental health & burnout                PASS   -                                      ok 71 items, newest 0d               
+World Bank & IMF blogs (jobs, education, AI)     PASS   -                                      ok 100 items, newest 0d              
+World Economic Forum                             PASS   -                                      ok 100 items, newest 1d              
+WWF-SG, SEC & SG Eco Fund (civic green)          PASS   -                                      ok 9 items, newest 7d                
+Yahoo News Singapore                             PASS   -                                      ok 100 items, newest 0d              
+Yayasan MENDAKI research & Policy Digest         PASS   -                                      ok 8 items, newest 45d               
+Youth, graduates & NEET sentiment                PASS   -                                      ok 60 items, newest 1d               
+Zaobao 言论 commentary & 交流站 letters               FAIL   -                                      FAIL feed parsed but 0 items         
+澎湃新闻 (The Paper)                                 PASS   -                                      ok 100 items, newest 0d              
+
+300/319 sources pull. 1 DEFAULT source(s) failing: SG Chinese press (zh).
+* = in the daily watched set (server.mjs WATCHED_SOURCES). A FAIL on the direct feed with a passing fallback still works in the app.
