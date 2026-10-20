@@ -77,7 +77,9 @@ ok(llmCalls.triage > 0 && llmCalls.cluster > 0, 'triage and clustering were call
 let r = await realFetch(base + '/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-FI-Code': CODE }, body: JSON.stringify({ sources: [{ name: 'Vulcan Post', feed: 'https://vulcanpost.com/feed', query: '', lang: 'en' }, { name: 'Bad host', feed: 'https://evil.example/feed', query: '' }, { name: 'McKinsey Global Institute', feed: 'https://www.mckinsey.com/insights/rss' }] }) });
 let prof = await r.json();
 ok(r.status === 200 && prof.sources.length === 1 && prof.sources[0].name === 'Vulcan Post', 'profile keeps the allow-listed user source, drops bad host and default duplicate');
-await new Promise(res => setTimeout(res, 1500));
+// The new source is ingested in the background (paced gateway calls: triage,
+// then clustering); wait for the engine to go idle rather than a fixed sleep.
+for (let i = 0; i < 40; i++) { await new Promise(res => setTimeout(res, 750)); const s = await get('/api/store'); if (s.phase === 'idle' && !s.building && i > 1) break; }
 st = await get('/api/store', { 'X-FI-Code': CODE });
 const vp = st.sources.find(s => s.name === 'Vulcan Post');
 ok(vp && vp.items.length === 1, 'user source ingested and served to its owner');
