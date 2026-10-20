@@ -1039,7 +1039,10 @@ async function clusterBatch(sigs, now) {
   const open = openIssues(now).slice(0, 80).map(x => ({ id: x.id, title: x.title }));
   const list = sigs.map((s, i) => ({ i, source: s.source, title: s.title, summary: (s.body || s.summary || '').slice(0, 240) }));
   let arr;
-  try { arr = await llmJSON(CLUSTER_PROMPT, JSON.stringify({ openIssues: open, newSignals: list }), 2200, '[', ']'); }
+  // 3000 tokens for a batch of 10 (see the caller): on the first live pull
+  // (2026-10-20) 4 of 10 batches of 15 hit the old 2200 cap exactly and were
+  // lost (signals stayed unassigned); the successes ran up to 2094.
+  try { arr = await llmJSON(CLUSTER_PROMPT, JSON.stringify({ openIssues: open, newSignals: list }), 3000, '[', ']'); }
   catch (e) { console.error('clustering failed (signals stay unassigned):', e.message); return; }
   const created = {};
   for (const v of (arr || [])) {
@@ -1155,9 +1158,9 @@ function ingestSources(list) {
     }
     const kept = fresh.filter(s => !s.triage || s.triage.keep !== false);
     setPhase('clustering');
-    for (let i = 0; i < kept.length; i += 15) {
+    for (let i = 0; i < kept.length; i += 10) {
       if (Date.now() > deadline + 4 * 60e3) { console.log('clustering deadline hit: remaining signals stay unassigned'); break; }
-      await hardCap(75e3, clusterBatch(kept.slice(i, i + 15), now));
+      await hardCap(75e3, clusterBatch(kept.slice(i, i + 10), now));
     }
     // Embed every kept signal that lacks a vector — powers semantic retrieval
     // (/api/retrieve); signals without one fall back to keyword matching.
