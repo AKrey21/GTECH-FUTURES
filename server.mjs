@@ -1082,17 +1082,25 @@ function setPhase(p) { ingestPhase = p; console.log('ingestion phase:', p); }
 // Pull, enrich, triage and cluster the given sources into the store. Serialised
 // behind `ingesting` so the daily run and a tester's new-source pull never
 // interleave their store writes.
-function ingestSources(list) {
+// backfill=true is the one-off "read the whole book" mode: pull deep into each
+// source (BACKFILL_DEPTH items instead of 20 — Google News carries ~100 items
+// per 90-day query, direct feeds weeks of posts) so the issue ledger gets
+// weeks of history on day one. Articles keep their real publication dates, so
+// first-reporter vs confirmer is judged on when they were PUBLISHED, and
+// triage/clustering run oldest-first so issues are created in time order.
+const BACKFILL_DEPTH = parseInt(process.env.BACKFILL_DEPTH || '60', 10);
+function ingestSources(list, backfill) {
   const run = async () => {
     const now = Date.now();
     const fresh = [];
-    setPhase('fetching feeds');
+    const depth = backfill ? BACKFILL_DEPTH : 20;
+    setPhase(backfill ? 'fetching feeds (backfill)' : 'fetching feeds');
     // Whole-phase wall clock: stragglers that beat the cap land in the store
     // late and harmlessly (dedup + untriaged=keep make that safe).
-    await hardCap(4 * 60e3, Promise.all(list.map(async (src) => {
-      let r = await fetchFeed(src.feed || googleNewsUrl(src.query, src.lang), 20);
+    await hardCap((backfill ? 8 : 4) * 60e3, Promise.all(list.map(async (src) => {
+      let r = await fetchFeed(src.feed || googleNewsUrl(src.query, src.lang), depth);
       // Feed first, Google News query as the fallback (see handleFeeds).
-      if ((!r.items || !r.items.length) && src.feed && src.query) r = await fetchFeed(googleNewsUrl(src.query, src.lang), 20);
+      if ((!r.items || !r.items.length) && src.feed && src.query) r = await fetchFeed(googleNewsUrl(src.query, src.lang), depth);
       if (!r.items || !r.items.length) return;
       await Promise.all(r.items.map(async (it) => {
         if (it.link && /^https:\/\/news\.google\.com\//.test(it.link)) {
@@ -1105,7 +1113,10 @@ function ingestSources(list) {
       // the store with a body are skipped, so daily pulls stay cheap. A fetched
       // body only replaces the feed summary when it is actually richer (arXiv
       // summaries ARE the full abstract; the landing page is thinner).
-      await Promise.all(r.items.map(async (it) => {
+      // In backfill mode only the freshest 20 get body fetches — hundreds of
+      // article fetches in one pass would be impolite; older items keep their
+      // feed summaries, which is enough for triage and clustering.
+      await Promise.all(r.items.slice(0, backfill ? 20 : r.items.length).map(async (it) => {
         const ex = store.signals[sigId(it)];
         if (ex && ex.body) return;
         const body = it.link ? await fetchBody(it.link) : '';
@@ -1147,36 +1158,43 @@ function ingestSources(list) {
     // Checkpoint: fetched articles are safe on disk even if triage below is
     // interrupted; untriaged items serve as keep (fail-safe) until tagged.
     saveStore();
-    setPhase('triage');
+    // Oldest first, so the ledger is built in publication order: an issue is
+    // created by whoever reported it first and later articles join it.
+    fresh.sort((a, b) => (a.firstSeen || 0) - (b.firstSeen || 0));
+    setPhase(backfill ? 'triage (backfill)' : 'triage');
     // Time-box triage and clustering: a congested gateway can take minutes per
     // batch, and an ingestion that never ends blocks everything. Whatever misses
-    // the window stays untriaged (= keep) / unassigned — nothing is lost.
-    const deadline = Date.now() + 8 * 60e3;
+    // the window stays untriaged (= keep) / unassigned — nothing is lost. A
+    // backfill is a one-off with ~450 items, so it gets a much longer box.
+    const deadline = Date.now() + (backfill ? 25 : 8) * 60e3;
     for (let i = 0; i < fresh.length; i += 12) {
       if (Date.now() > deadline) { console.log(`triage deadline hit: ${fresh.length - i} items stay untriaged (keep)`); break; }
       await hardCap(75e3, triageBatch(fresh.slice(i, i + 12)));
     }
+    if (backfill) saveStore();
     const kept = fresh.filter(s => !s.triage || s.triage.keep !== false);
-    setPhase('clustering');
+    setPhase(backfill ? 'clustering (backfill)' : 'clustering');
+    const clusterDeadline = deadline + (backfill ? 35 : 4) * 60e3;
     for (let i = 0; i < kept.length; i += 10) {
-      if (Date.now() > deadline + 4 * 60e3) { console.log('clustering deadline hit: remaining signals stay unassigned'); break; }
+      if (Date.now() > clusterDeadline) { console.log('clustering deadline hit: remaining signals stay unassigned'); break; }
       await hardCap(75e3, clusterBatch(kept.slice(i, i + 10), now));
+      if (backfill && i % 50 === 0) saveStore();   // checkpoint a long run
     }
     // Embed every kept signal that lacks a vector — powers semantic retrieval
     // (/api/retrieve); signals without one fall back to keyword matching.
     setPhase('embedding');
-    await hardCap(90e3, embedSignals(Object.values(store.signals).filter(s => !s.emb && (!s.triage || s.triage.keep !== false))));
+    await hardCap((backfill ? 240 : 90) * 1e3, embedSignals(Object.values(store.signals).filter(s => !s.emb && (!s.triage || s.triage.keep !== false))));
     saveStore();
-    console.log(`ingested ${list.length} source(s): ${fresh.length} new signals, ${kept.length} kept, ${Object.keys(store.signals).length} in store, ${Object.keys(store.issues || {}).length} issues`);
+    console.log(`ingested ${list.length} source(s)${backfill ? ' (backfill)' : ''}: ${fresh.length} new signals, ${kept.length} kept, ${Object.keys(store.signals).length} in store, ${Object.keys(store.issues || {}).length} issues`);
   };
   const p = (ingesting || Promise.resolve()).then(run, run).finally(() => { if (ingesting === p) { ingesting = null; setPhase('idle'); } });
   ingesting = p;
   return p;
 }
-function runIngestion(force) {
+function runIngestion(force, backfill) {
   if (ingesting) return ingesting;
   if (!force && Date.now() - (store.meta.lastPull || 0) < 20 * 3600e3) return Promise.resolve();
-  return ingestSources(allSources()).then(() => {
+  return ingestSources(allSources(), backfill).then(() => {
     const now = Date.now();
     store.issues = store.issues || {};
     for (const [id, s] of Object.entries(store.signals)) {
@@ -1187,6 +1205,7 @@ function runIngestion(force) {
       if (!iss.signals.length) delete store.issues[id];
     }
     store.meta.lastPull = now;
+    if (backfill) store.meta.lastBackfill = now;
     saveStore();
   });
 }
@@ -1466,6 +1485,18 @@ async function handleScorecard(req, res) {
 
 async function handleStore(req, res, qs) {
   if (/(^|&)audit=1/.test(qs)) return sendJSON(res, 200, auditView());
+  // One-off deep backfill (at most once per 6h, never while a pull runs): kicks
+  // off in the background and returns at once — poll /api/store to watch the
+  // phase and totals; the run finishes on the server whether or not anyone is
+  // still watching.
+  if (/(^|&)backfill=1/.test(qs)) {
+    if (PILOT.size && !authUser(req)) return sendJSON(res, 401, { error: 'sign in with your access code' });
+    const ago = Date.now() - (store.meta.lastBackfill || 0);
+    if (ingesting) return sendJSON(res, 409, { error: 'a pull is already running — try again when phase is idle', phase: ingestPhase });
+    if (ago < 6 * 3600e3) return sendJSON(res, 429, { error: `backfill already ran ${Math.round(ago / 60e3)} min ago — allowed once per 6h` });
+    runIngestion(true, true).catch(() => {});
+    return sendJSON(res, 200, { backfill: 'started', depth: BACKFILL_DEPTH, sources: allSources().length });
+  }
   if (/(^|&)refresh=1/.test(qs) && Date.now() - (store.meta.lastPull || 0) > 10 * 60e3) {
     await Promise.race([runIngestion(true).catch(() => {}), new Promise(r => setTimeout(r, 25000))]);
   }

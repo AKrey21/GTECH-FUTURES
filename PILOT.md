@@ -128,4 +128,13 @@ with open HTTPS.
   source's three strongest). A floating bubble that is never cited is a
   rotation candidate. The Engine audit scorecard shows the same counts
   ("first on N, confirmed N"). Data: `GET /api/graph`.
+- **Backfill** — the ledger only knows what the daily pulls have read (20 items
+  per source per day), so on a fresh deployment the Source map and
+  corroboration are thin. Run a one-off deep pull by opening
+  `/api/store?backfill=1` once (signed in, if sign-in is on): the engine reads
+  60 items per source (weeks of history), keeps real publication dates, and
+  triages and clusters oldest-first so first-reporter vs confirmer is judged on
+  when articles were published. It runs in the background on the server
+  (20–40 minutes of gateway time; the page stays usable) — watch `phase` on
+  `/api/store`. Guarded: once per 6 hours, never while a pull is running.
 - Tests: `node --test test/*.test.mjs` (no network needed).
