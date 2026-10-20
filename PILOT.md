@@ -137,4 +137,9 @@ with open HTTPS.
   when articles were published. It runs in the background on the server
   (20–40 minutes of gateway time; the page stays usable) — watch `phase` on
   `/api/store`. Guarded: once per 6 hours, never while a pull is running.
+  Background model calls are paced to the gateway's ~20/min limit and retried
+  once if throttled; whatever still misses is picked up by the next pull
+  (every run re-triages stored signals left untriaged and re-clusters kept
+  signals not yet in the ledger), so a bad gateway day delays the ledger but
+  never leaves a permanent gap.
 - Tests: `node --test test/*.test.mjs` (no network needed).

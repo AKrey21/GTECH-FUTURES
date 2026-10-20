@@ -181,7 +181,34 @@ function sendJSON(res, status, obj) {
 // One gateway round-trip, measured. Never throws: network failure comes back as
 // { ok:false, status:0 }. Callers record telemetry once they know the outcome
 // (schema verdict etc.), via recordCall below.
-async function callGateway({ model, messages, maxTokens, timeoutMs = 60000, jsonMode = false }) {
+// Pacing for background work: the gateway allows roughly 20 requests/minute
+// per key, and the first backfill (2026-10-21) fired 43 triage batches in a
+// minute — 22 of 87 calls came back "Rate limit exceeded". Background callers
+// wait their turn here; the user-facing scan never waits (it has 60s total).
+let lastGatewayAt = 0;
+const GATEWAY_GAP_MS = parseInt(process.env.GATEWAY_GAP_MS || '3300', 10);
+async function pace() {
+  const wait = lastGatewayAt + GATEWAY_GAP_MS - Date.now();
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  lastGatewayAt = Date.now();
+}
+const isRateLimited = (r) => r.status === 429 || /rate limit/i.test(r.bodyText || '');
+
+// retryOnRateLimit: background callers (triage, clustering) get ONE retry after
+// a pause when the gateway throttles them. The interactive scan does not — a
+// 20s pause would blow its 60s edge budget; the client's own fallback handles it.
+async function callGateway({ model, messages, maxTokens, timeoutMs = 60000, jsonMode = false, retryOnRateLimit = false }) {
+  const r = await callGatewayOnce({ model, messages, maxTokens, timeoutMs, jsonMode });
+  if (retryOnRateLimit && !r.ok && isRateLimited(r)) {
+    await new Promise(res => setTimeout(res, 20000));
+    await pace();
+    const again = await callGatewayOnce({ model, messages, maxTokens, timeoutMs, jsonMode });
+    again.retried = true;
+    return again;
+  }
+  return r;
+}
+async function callGatewayOnce({ model, messages, maxTokens, timeoutMs = 60000, jsonMode = false }) {
   const t0 = Date.now();
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -222,6 +249,8 @@ function recordCall(r, extra) {
     est: inTok == null || undefined,
     truncated: r.finish === 'length' || undefined,
     jsonMode: r.jsonMode || undefined,
+    retried: r.retried || undefined,
+    rateLimited: (!r.ok && isRateLimited(r)) || undefined,
     error: r.error || (!r.ok ? String(r.bodyText).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) : undefined),
     ...extra,
   });
@@ -970,7 +999,8 @@ const TRIAGE_PROMPT =
 async function triageBatch(sigs) {
   if (!sigs.length || !KEY) return;
   const list = sigs.map((s, i) => ({ i, source: s.source, title: s.title, summary: (s.summary || '').slice(0, 200) }));
-  const r = await callGateway({ model: TRIAGE_MODEL, maxTokens: 1800, messages: [
+  await pace();
+  const r = await callGateway({ model: TRIAGE_MODEL, maxTokens: 1800, retryOnRateLimit: true, messages: [
     { role: 'system', content: TRIAGE_PROMPT },
     { role: 'user', content: JSON.stringify(list) },
   ] });
@@ -992,7 +1022,8 @@ async function triageBatch(sigs) {
 // telemetry as everything else. Throws on failure so callers keep their
 // fail-safe catch (signals stay unassigned, never lost).
 async function llmJSON(system, user, maxTokens, open, close, purpose = 'cluster') {
-  const r = await callGateway({ model: MODEL, maxTokens, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] });
+  await pace();
+  const r = await callGateway({ model: MODEL, maxTokens, retryOnRateLimit: true, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] });
   let value = null, error;
   if (r.ok) {
     try { value = extractJson(r.text, open === '[' ? 'array' : 'object').value; } catch (e) { error = e.message; }
@@ -1158,6 +1189,14 @@ function ingestSources(list, backfill) {
     // Checkpoint: fetched articles are safe on disk even if triage below is
     // interrupted; untriaged items serve as keep (fail-safe) until tagged.
     saveStore();
+    // Mop-up: anything an earlier run left untriaged (gateway throttled, deadline
+    // hit) gets another go now, so a failure is a delay, never a permanent gap.
+    // Capped so a bad day can't balloon the run; the rest waits for tomorrow.
+    const freshIds = new Set(fresh.map(s => s.id));
+    const leftover = Object.values(store.signals).filter(s => !s.triage && !freshIds.has(s.id))
+      .sort((a, b) => (b.firstSeen || 0) - (a.firstSeen || 0)).slice(0, backfill ? 300 : 120);
+    if (leftover.length) console.log(`mop-up: ${leftover.length} stored signals still untriaged`);
+    fresh.push(...leftover);
     // Oldest first, so the ledger is built in publication order: an issue is
     // created by whoever reported it first and later articles join it.
     fresh.sort((a, b) => (a.firstSeen || 0) - (b.firstSeen || 0));
@@ -1166,13 +1205,24 @@ function ingestSources(list, backfill) {
     // batch, and an ingestion that never ends blocks everything. Whatever misses
     // the window stays untriaged (= keep) / unassigned — nothing is lost. A
     // backfill is a one-off with ~450 items, so it gets a much longer box.
-    const deadline = Date.now() + (backfill ? 25 : 8) * 60e3;
+    // Paced at ~18 calls/min, 450 backfill items = ~38 triage + ~45 clustering
+    // calls ≈ 2 + 15 minutes; the boxes leave room for retries.
+    const deadline = Date.now() + (backfill ? 25 : 10) * 60e3;
     for (let i = 0; i < fresh.length; i += 12) {
       if (Date.now() > deadline) { console.log(`triage deadline hit: ${fresh.length - i} items stay untriaged (keep)`); break; }
       await hardCap(75e3, triageBatch(fresh.slice(i, i + 12)));
     }
     if (backfill) saveStore();
+    // Cluster what was kept this run, plus stored kept signals that never made
+    // it into the ledger (a failed clustering batch leaves issue = null).
     const kept = fresh.filter(s => !s.triage || s.triage.keep !== false);
+    const keptIds = new Set(kept.map(s => s.id));
+    const unassigned = Object.values(store.signals)
+      .filter(s => s.triage && s.triage.keep !== false && !s.issue && !keptIds.has(s.id))
+      .sort((a, b) => (b.firstSeen || 0) - (a.firstSeen || 0)).slice(0, backfill ? 300 : 100);
+    if (unassigned.length) console.log(`mop-up: ${unassigned.length} kept signals not yet in the ledger`);
+    kept.push(...unassigned);
+    kept.sort((a, b) => (a.firstSeen || 0) - (b.firstSeen || 0));
     setPhase(backfill ? 'clustering (backfill)' : 'clustering');
     const clusterDeadline = deadline + (backfill ? 35 : 4) * 60e3;
     for (let i = 0; i < kept.length; i += 10) {
