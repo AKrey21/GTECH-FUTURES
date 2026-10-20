@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { SCHEMAS, enforce, extractJson, repairMessages } from './lib/structured.mjs';
 import { guardText, guardSignal, UNTRUSTED_DATA_RULE } from './lib/guard.mjs';
 import { createTelemetry, estimateTokens } from './lib/telemetry.mjs';
-import { hybridRetrieve, bestPassage } from './lib/retrieval.mjs';
+import { hybridRetrieve, bestPassage, dotVec } from './lib/retrieval.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(ROOT, 'dist');
@@ -1251,6 +1251,70 @@ function storeView(user) {
 // (the scorecard, fed by POST /api/scorecard after every scan), which sources
 // are candidates for rotation, and how often the model's High ratings survived
 // the mechanical corroboration check.
+// ---------- source map: how the watched sources relate ----------
+// Nodes are sources; two kinds of edge justify the watchlist's shape:
+//   corroborated — the two sources carried signals the ledger matched to the
+//                  same issue (the CSF unconnected-publisher test, confirmed)
+//   overlap      — article pairs whose embeddings sit on the same ground
+//                  (cosine >= GRAPH_SIM), as a share of the smaller source's
+//                  articles. Available from day one, while corroboration
+//                  accumulates over cycles.
+// A source with many edges confirms others; one with few but cited is a unique
+// lens (breadth); one with none and never cited is a rotation candidate.
+// GRAPH_SIM is stricter than the retrieval floor (0.45) because article-to-
+// article similarity runs higher than query-to-article: on the live store
+// (2026-10-20) the same event across outlets scored 0.77–0.83, a shared theme
+// ~0.57, and 0.555 joined two unrelated stories; 0.60 keeps the first two.
+const GRAPH_SIM = parseFloat(process.env.GRAPH_SIM || '0.60');
+function graphView(user) {
+  const now = Date.now();
+  const mine = (user && profiles[user] && profiles[user].sources) || [];
+  const named = new Set([...WATCHED_NAMES, ...mine.map(s => s.name)]);
+  const bySrc = {};
+  for (const s of Object.values(store.signals)) {
+    const n = bySrc[s.source] = bySrc[s.source] || { name: s.source, kept: 0, discarded: 0, domains: {}, items: [], issues: new Set() };
+    if (s.triage && s.triage.keep === false) { n.discarded++; continue; }
+    n.kept++;
+    const d = s.triage && s.triage.domain; if (d) n.domains[d] = (n.domains[d] || 0) + 1;
+    if (s.emb) n.items.push(s);
+    if (s.issue) n.issues.add(s.issue);
+  }
+  const sc = store.meta.scorecard || {};
+  const names = Object.keys(bySrc).filter(k => named.has(k) || bySrc[k].kept > 0).sort();
+  const nodes = names.map((k) => {
+    const n = bySrc[k];
+    const top = Object.entries(n.domains).sort((a, b) => b[1] - a[1])[0];
+    return { name: k, kept: n.kept, discarded: n.discarded, embedded: n.items.length, issues: n.issues.size,
+      domains: n.domains, topDomain: top ? top[0] : '', cited: (sc[k] || {}).cited || 0, scans: (sc[k] || {}).scans || 0,
+      isDefault: WATCHED_NAMES.has(k), lastSeen: Math.max(0, ...Object.values(store.signals).filter(s => s.source === k).map(s => s.lastSeen || 0)) };
+  });
+  // Shared issues per source pair (open issues only — stale ones have aged out).
+  const shared = {};
+  for (const iss of openIssues(now)) {
+    const srcs = [...new Set(iss.signals.map(id => store.signals[id]).filter(Boolean).map(s => s.source))].sort();
+    for (let i = 0; i < srcs.length; i++) for (let j = i + 1; j < srcs.length; j++) {
+      const key = srcs[i] + '\u0000' + srcs[j];
+      (shared[key] = shared[key] || []).push(iss.title);
+    }
+  }
+  const edges = [];
+  for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
+    const A = bySrc[names[i]], B = bySrc[names[j]];
+    let pairs = 0, best = null;
+    for (const a of A.items) for (const b of B.items) {
+      const sim = dotVec(a.emb, b.emb);
+      if (sim >= GRAPH_SIM) { pairs++; if (!best || sim > best.sim) best = { sim, a: a.title, b: b.title }; }
+    }
+    const issues = shared[names[i] + '\u0000' + names[j]] || [];
+    if (!pairs && !issues.length) continue;
+    const denom = Math.min(A.items.length, B.items.length) || 1;
+    edges.push({ a: names[i], b: names[j], pairs, overlap: +(pairs / denom).toFixed(3),
+      example: best ? { sim: +best.sim.toFixed(3), a: best.a, b: best.b } : null,
+      corroborated: issues.length, issues: issues.slice(0, 3) });
+  }
+  return { sim: GRAPH_SIM, generated: now, nodes, edges };
+}
+
 function auditView() {
   const now = Date.now();
   const discards = Object.values(store.signals)
@@ -1511,6 +1575,10 @@ const server = http.createServer((req, res) => {
   if (route === '/api/retrieve') {
     if (req.method !== 'POST') return sendJSON(res, 405, { error: 'POST only' });
     return safely(handleRetrieve(req, res, (req.url || '').split('?')[1] || ''), res);
+  }
+  if (route === '/api/graph') {
+    if (req.method !== 'GET') return sendJSON(res, 405, { error: 'GET only' });
+    return sendJSON(res, 200, graphView(authUser(req)));
   }
   if (route === '/api/metrics') {
     if (req.method !== 'GET') return sendJSON(res, 405, { error: 'GET only' });

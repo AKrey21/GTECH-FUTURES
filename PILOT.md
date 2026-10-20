@@ -112,4 +112,12 @@ with open HTTPS.
   engine's memory (semantic + keyword search, `POST /api/retrieve`). A topic with
   no support is stated as a gap in the scan input. Calibrate on the live store
   with `/api/retrieve?debug=1&dense=0.3&sparse=0.03`.
+- **Source map** — the **Source map** link beside Engine audit draws the watched
+  sources as a network: bubble size = usable signals, colour = CSF source type,
+  a green line = the ledger matched both sources to the same issue (confirmed
+  corroboration), a grey line = their articles sit on the same ground
+  (embedding similarity ≥ 0.6; each source's three strongest). Use it to
+  justify the list: a central source confirms others, an edge source that gets
+  cited is a unique lens, a floating one never cited is a rotation candidate.
+  Hover for a source's record; click to pin. Data: `GET /api/graph`.
 - Tests: `node --test test/*.test.mjs` (no network needed).

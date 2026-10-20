@@ -471,7 +471,10 @@ fs.copyFileSync(path.join(ROOT, 'web', 'profile.js'), path.join(DIST, 'profile.j
 fs.copyFileSync(path.join(ROOT, 'web', 'ingest.js'), path.join(DIST, 'ingest.js'));
 fs.copyFileSync(path.join(ROOT, 'web', 'export.js'), path.join(DIST, 'export.js'));
 fs.copyFileSync(path.join(ROOT, 'web', 'guide.js'), path.join(DIST, 'guide.js'));
-appHtml = appHtml.replace(/<\/body>/i, '  <script src="profile.js"></script>\n  <script src="ingest.js"></script>\n  <script src="export.js"></script>\n  <script src="guide.js"></script>\n</body>');
+// Source map (network graph of how the watched sources corroborate and overlap);
+// reads the catalog's type labels from ingest.js, so it loads after it.
+fs.copyFileSync(path.join(ROOT, 'web', 'graph.js'), path.join(DIST, 'graph.js'));
+appHtml = appHtml.replace(/<\/body>/i, '  <script src="profile.js"></script>\n  <script src="ingest.js"></script>\n  <script src="export.js"></script>\n  <script src="guide.js"></script>\n  <script src="graph.js"></script>\n</body>');
 
 fs.writeFileSync(path.join(DIST, 'index.html'), appHtml);
 

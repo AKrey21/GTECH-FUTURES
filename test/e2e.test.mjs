@@ -166,6 +166,16 @@ test('retrieve: per-topic evidence, gaps reported, sparse fallback without embed
   assert.equal(json.mandate[0].source, 'CNA');
 });
 
+test('graph: one node per source, edges only where a relationship exists', async () => {
+  const g = await (await fetch(base + '/api/graph')).json();
+  assert.equal(g.sim, 0.6);
+  assert.deepEqual(g.nodes.map(n => n.name).sort(), ['CNA', 'ILO', 'Nikkei Asia']);
+  const nikkei = g.nodes.find(n => n.name === 'Nikkei Asia');
+  assert.equal(nikkei.kept, 1);
+  assert.equal(nikkei.topDomain, 'Social');
+  assert.deepEqual(g.edges, [], 'no embeddings and no shared issues in this store -> no edges, never a fake one');
+});
+
 test('audit view lists the quarantined signal', async () => {
   const a = await (await fetch(base + '/api/store?audit=1')).json();
   assert.equal(a.quarantine.length, 1);
