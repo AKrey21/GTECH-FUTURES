@@ -1266,6 +1266,42 @@ function storeView(user) {
 // (2026-10-20) the same event across outlets scored 0.77–0.83, a shared theme
 // ~0.57, and 0.555 joined two unrelated stories; 0.60 keeps the first two.
 const GRAPH_SIM = parseFloat(process.env.GRAPH_SIM || '0.60');
+
+// Why each daily source is followed, in the reader's terms. The briefing's job
+// is to inform leadership about the future ahead and what it means for SWDA,
+// so a source earns its place by seeing things EARLY, seeing directions the
+// rest of the list MISSES, or letting a finding be said WITH CONFIDENCE —
+// and the ledger measures which of those it actually does (sourceRoles).
+const SOURCE_WHY = {
+  'McKinsey Global Institute': 'Occupation-level automation exposure and early employer surveys — findings leadership can quote with confidence.',
+  'arXiv (Computers & Society)': 'Research on AI, work and society weeks before it is reported anywhere; weak-signal input, never a sole basis for High confidence.',
+  'Ethan Mollick': 'The most-read practitioner voice on how AI is actually changing work, ahead of institutional reports.',
+  'Singapore skills policy': 'SkillsFuture, WSG and MOM developments from outlets of record — the of-record anchor for anything about our own domain.',
+  'SG Chinese press (zh)': 'The same Singapore developments read through the Chinese-language press — a different framing, and sometimes a different story.',
+  'OECD Education & Skills': 'The institutional comparator: how peer economies are handling skills, adult learning and the future of work.',
+  'CNA Commentary': 'Where NUS/NTU/SMU/RSIS academics first air dissenting views on SkillsFuture, meritocracy and AI at work — early, and of record.',
+  'Mothership': 'Youth and workplace sentiment days before mainstream pickup: what workers are reacting to, before it reaches a policy paper.',
+  'Eco-Business': 'The environmental direction the rest of the list misses: where climate policy turns into skills demand.',
+  'ISEAS Fulcrum': 'The regional direction: JS-SEZ labour flows, neighbours\' skills policy, Chinese firms\' hiring — the context Singapore sits in.',
+};
+// Measured role per source, from the issue ledger: on issues reported by two or
+// more sources, who carried the development FIRST (earliest firstSeen) and who
+// CONFIRMED it later; and how many developments only this source has reported.
+function sourceRoles() {
+  const roles = {};
+  const at = (k) => roles[k] = roles[k] || { firstOn: 0, confirmedOn: 0, solo: 0, firstExamples: [] };
+  for (const iss of openIssues(Date.now())) {
+    const sigs = iss.signals.map(id => store.signals[id]).filter(Boolean);
+    const earliest = {};
+    for (const s of sigs) if (!(s.source in earliest) || (s.firstSeen || 0) < earliest[s.source]) earliest[s.source] = s.firstSeen || 0;
+    const srcs = Object.keys(earliest);
+    if (srcs.length === 1) { at(srcs[0]).solo++; continue; }
+    const first = srcs.sort((a, b) => earliest[a] - earliest[b])[0];
+    const f = at(first); f.firstOn++; if (f.firstExamples.length < 3) f.firstExamples.push(iss.title);
+    for (const k of srcs) if (k !== first) at(k).confirmedOn++;
+  }
+  return roles;
+}
 function graphView(user) {
   const now = Date.now();
   const mine = (user && profiles[user] && profiles[user].sources) || [];
@@ -1280,12 +1316,16 @@ function graphView(user) {
     if (s.issue) n.issues.add(s.issue);
   }
   const sc = store.meta.scorecard || {};
+  const roles = sourceRoles();
   const names = Object.keys(bySrc).filter(k => named.has(k) || bySrc[k].kept > 0).sort();
   const nodes = names.map((k) => {
     const n = bySrc[k];
     const top = Object.entries(n.domains).sort((a, b) => b[1] - a[1])[0];
+    const r = roles[k] || { firstOn: 0, confirmedOn: 0, solo: 0, firstExamples: [] };
     return { name: k, kept: n.kept, discarded: n.discarded, embedded: n.items.length, issues: n.issues.size,
       domains: n.domains, topDomain: top ? top[0] : '', cited: (sc[k] || {}).cited || 0, scans: (sc[k] || {}).scans || 0,
+      firstOn: r.firstOn, confirmedOn: r.confirmedOn, solo: r.solo, firstExamples: r.firstExamples,
+      why: SOURCE_WHY[k] || (mine.find(s => s.name === k) || {}).why || '',
       isDefault: WATCHED_NAMES.has(k), lastSeen: Math.max(0, ...Object.values(store.signals).filter(s => s.source === k).map(s => s.lastSeen || 0)) };
   });
   // Shared issues per source pair (open issues only — stale ones have aged out).
@@ -1338,7 +1378,7 @@ function auditView() {
     .sort((a, b) => (b.guard.at || 0) - (a.guard.at || 0))
     .slice(0, 30)
     .map(s => ({ source: s.source, title: s.title, link: s.link, hits: s.guard.hits, kinds: Object.keys(s.guard.kinds || {}) }));
-  return { discards, issues, quarantine, scorecard: sc, rotate, reviews: (store.meta.reviews || []).slice(-30).reverse(),
+  return { discards, issues, quarantine, scorecard: sc, rotate, roles: sourceRoles(), reviews: (store.meta.reviews || []).slice(-30).reverse(),
     checks: store.meta.checks || { trends: 0, high: 0, highHeld: 0, adjusted: 0 } };
 }
 

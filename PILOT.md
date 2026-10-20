@@ -112,12 +112,20 @@ with open HTTPS.
   engine's memory (semantic + keyword search, `POST /api/retrieve`). A topic with
   no support is stated as a gap in the scan input. Calibrate on the live store
   with `/api/retrieve?debug=1&dense=0.3&sparse=0.03`.
-- **Source map** — the **Source map** link beside Engine audit draws the watched
-  sources as a network: bubble size = usable signals, colour = CSF source type,
-  a green line = the ledger matched both sources to the same issue (confirmed
-  corroboration), a grey line = their articles sit on the same ground
-  (embedding similarity ≥ 0.6; each source's three strongest). Use it to
-  justify the list: a central source confirms others, an edge source that gets
-  cited is a unique lens, a floating one never cited is a rotation candidate.
-  Hover for a source's record; click to pin. Data: `GET /api/graph`.
+- **Source map** — the **Source map** link beside Engine audit answers "why do
+  we follow this source?" The briefing's purpose is to inform leadership about
+  the future ahead and what it means for SWDA, so a source earns its place by
+  one of three roles, and the map colours it by that role: **sees early**
+  (carries developments before they are mainstream), **sees wide** (brings a
+  direction the rest of the list would miss), **confirms** (of record; lets a
+  finding be said with confidence). The role is *measured* from the issue
+  ledger once a source has been on two or more shared developments (was it
+  the first reporter or a confirmer?); until then it is the default for its
+  CSF source type, and the tooltip says which. Each daily source also carries
+  a one-line "why", in the reader's terms. Lines: green = the ledger matched
+  both sources to the same development (confirmed corroboration), grey =
+  their articles sit on the same ground (embedding similarity ≥ 0.6; each
+  source's three strongest). A floating bubble that is never cited is a
+  rotation candidate. The Engine audit scorecard shows the same counts
+  ("first on N, confirmed N"). Data: `GET /api/graph`.
 - Tests: `node --test test/*.test.mjs` (no network needed).

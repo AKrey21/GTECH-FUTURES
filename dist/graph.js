@@ -17,22 +17,42 @@
   if (window.__FI_GRAPH__) return;
   window.__FI_GRAPH__ = true;
 
-  // The catalog's CSF source-type labels fold into seven families (one colour
-  // each), so the legend shows the spread of TYPES, not every label variant.
+  // Colour = the ROLE a source plays for the briefing's purpose (inform
+  // leadership about the future ahead and what it means for SWDA):
+  //   Sees early   — carries developments before they are mainstream
+  //   Sees wide    — brings a direction the rest of the list would miss
+  //   Confirms     — of record, lets a finding be said with confidence
+  // The role is MEASURED from the issue ledger once a source has been on two
+  // or more shared issues (first-reporter vs confirmer); until then it is the
+  // default for its CSF source type, and the tooltip says which.
+  var ROLES = {
+    early: ["Sees early", "#c95c6a"],
+    wide: ["Sees wide", "#c0893a"],
+    confirms: ["Confirms", "#3e8e6a"],
+  };
   var FAMILIES = [
-    [/^(Trade press|Press)/i, "Press", "#5b7fb5"],
-    [/^(Journals|Research)/i, "Journals & research", "#8a63b3"],
-    [/^(Think tanks|Analysts)/i, "Think tanks & analysts", "#3e8e6a"],
-    [/^(Government|Foresight)/i, "Government & foresight", "#c0893a"],
-    [/^Different languages/i, "Different languages", "#c95c6a"],
-    [/^(Forums|Self-publishing|Commentary)/i, "Forums & self-publishing", "#d2a640"],
-    [/^Labour-market data/i, "Labour-market data", "#4a9ab0"],
+    [/^(Trade press|Press)/i, "Press", "confirms"],
+    [/^(Journals|Research)/i, "Journals & research", "early"],
+    [/^(Think tanks|Analysts)/i, "Think tanks & analysts", "confirms"],
+    [/^(Government|Foresight)/i, "Government & foresight", "confirms"],
+    [/^Different languages/i, "Different languages", "wide"],
+    [/^(Forums|Self-publishing|Commentary)/i, "Forums & self-publishing", "early"],
+    [/^Labour-market data/i, "Labour-market data", "confirms"],
   ];
   function familyOf(name) {
     var kinds = window.__FI_KIND__ || {};
-    var label = (kinds[name] || "").split("·")[0].trim();
-    for (var i = 0; i < FAMILIES.length; i++) if (FAMILIES[i][0].test(label)) return { type: FAMILIES[i][1], colour: FAMILIES[i][2], label: label };
-    return { type: "Other", colour: "#8b948c", label: label || "uncategorised" };
+    var full = kinds[name] || "";
+    var label = full.split("·")[0].trim();
+    // The catalog marks regional / environmental lenses in the label's detail
+    // ("· Singapore lens", "· East Asia", "· care economy"): those widen the view.
+    var wide = /regional|east asia|asean|environment|climate|care economy|green/i.test(full);
+    for (var i = 0; i < FAMILIES.length; i++) if (FAMILIES[i][0].test(label)) return { family: FAMILIES[i][1], role: wide && FAMILIES[i][2] !== "early" ? "wide" : FAMILIES[i][2], label: label };
+    return { family: "Other", role: "confirms", label: label || "uncategorised" };
+  }
+  function roleOf(n, f) {
+    var shared = (n.firstOn || 0) + (n.confirmedOn || 0);
+    if (shared >= 2) return { role: n.firstOn > n.confirmedOn ? "early" : "confirms", measured: true };
+    return { role: f.role, measured: false };
   }
   function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 
@@ -62,8 +82,9 @@
     var byName = {};
     var colourByType = {};
     nodes.forEach(function (n) {
-      var f = familyOf(n.name);
-      n.type = f.type; n.colour = f.colour; n.label = f.label;
+      var f = familyOf(n.name), r = roleOf(n, f);
+      n.family = f.family; n.label = f.label; n.roleKey = r.role; n.measured = r.measured;
+      n.type = ROLES[r.role][0]; n.colour = ROLES[r.role][1];
       colourByType[n.type] = n.colour;
       n.r = 10 + Math.sqrt(n.kept) * 4.2;
       n.deg = 0; n.corro = 0;
@@ -92,7 +113,8 @@
     var W = Math.min(900, Math.max(560, window.innerWidth - 80)), H = Math.min(560, Math.max(400, window.innerHeight - 260));
     card.innerHTML =
       '<h3>Source map</h3>' +
-      '<p class="fi-sub">How the watched sources relate. Bubble size = usable signals this cycle. ' +
+      '<p class="fi-sub">Why each source is followed, and how they relate. Colour = the role it plays for the briefing ' +
+      '(sees early · sees wide · confirms), measured from the issue ledger where it has the record. Bubble size = usable signals this cycle. ' +
       '<span class="fi-g-key"><i style="background:#2f6b3a"></i>same issue in the ledger (confirmed corroboration)</span> ' +
       '<span class="fi-g-key"><i style="background:#b9bfb4"></i>articles on the same ground (embedding similarity ≥ ' + g.sim + ')</span>. ' +
       'Hover a bubble for its record; click to pin its neighbours.</p>' +
@@ -185,7 +207,16 @@
         .sort(function (a, b) { return (b.corroborated - a.corroborated) || (b.overlap - a.overlap); }).slice(0, 4);
       var dom = Object.keys(n.domains || {}).sort(function (a, b) { return n.domains[b] - n.domains[a]; }).slice(0, 3)
         .map(function (d) { return d + " " + n.domains[d]; }).join(", ");
-      var html = '<b>' + esc(n.name) + '</b><br><span class="fi-g-type" style="color:' + n.colour + '">' + esc(n.label || n.type) + (n.isDefault ? ' · daily default' : ' · tester-added') + '</span>' +
+      var shared = (n.firstOn || 0) + (n.confirmedOn || 0);
+      var record = shared || n.solo
+        ? 'First to carry ' + (n.firstOn || 0) + ' development' + (n.firstOn === 1 ? '' : 's') + ' others later confirmed · confirmed ' + (n.confirmedOn || 0) +
+          (n.solo ? ' · ' + n.solo + ' only it has reported' : '') +
+          (n.firstExamples && n.firstExamples.length ? ' — e.g. “' + esc(n.firstExamples[0].slice(0, 70)) + '”' : '')
+        : 'No shared development in the ledger yet';
+      var html = '<b>' + esc(n.name) + '</b><br><span class="fi-g-type" style="color:' + n.colour + '">' + esc(n.type) +
+        (n.measured ? ' (measured)' : ' (by source type: ' + esc(n.label || n.family) + ')') + (n.isDefault ? ' · daily default' : ' · tester-added') + '</span>' +
+        (n.why ? '<div class="fi-g-row fi-g-why">' + esc(n.why) + '</div>' : '') +
+        '<div class="fi-g-row">' + esc(record) + '</div>' +
         '<div class="fi-g-row">' + n.kept + ' usable signal' + (n.kept === 1 ? '' : 's') + (n.discarded ? ' (' + n.discarded + ' filtered out)' : '') +
         ' · in ' + n.issues + ' tracked issue' + (n.issues === 1 ? '' : 's') + ' · cited in ' + n.cited + ' of ' + n.scans + ' scan' + (n.scans === 1 ? '' : 's') + '</div>' +
         (dom ? '<div class="fi-g-row">STEEPLE: ' + esc(dom) + '</div>' : '');
@@ -252,6 +283,7 @@
     ".fi-g-tip[hidden]{display:none;}" +
     ".fi-g-type{font-size:11px;letter-spacing:.04em;text-transform:uppercase;}" +
     ".fi-g-row{margin-top:3px;color:#3c4a40;}" +
+    ".fi-g-why{font-style:italic;color:#2d3a31;margin:5px 0 4px;}" +
     ".fi-g-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0 2px;font-size:12px;color:#3c4a40;}" +
     ".fi-g-legend i,.fi-g-key i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;}" +
     ".fi-g-key i{border-radius:2px;height:4px;width:18px;vertical-align:2px;}" +

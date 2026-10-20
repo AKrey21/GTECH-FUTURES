@@ -684,8 +684,13 @@
     Promise.all([fetch("/api/store?audit=1").then(function (r) { return r.json(); }), metricsP]).then(function (both) {
       var d = both[0], mx = both[1];
       var esc = function (s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
-      var sc = Object.keys(d.scorecard || {}).map(function (k) { return { name: k, s: d.scorecard[k] }; })
-        .sort(function (a, b) { return (b.s.cited || 0) - (a.s.cited || 0); });
+      // One row per source seen by the scorecard OR the ledger's role counts
+      // (a source can be first on an issue before it has ever been scanned).
+      var roles = d.roles || {}, names = {};
+      Object.keys(d.scorecard || {}).forEach(function (k) { names[k] = true; });
+      Object.keys(roles).forEach(function (k) { names[k] = true; });
+      var sc = Object.keys(names).map(function (k) { return { name: k, s: (d.scorecard || {})[k] || {}, r: roles[k] || {} }; })
+        .sort(function (a, b) { return ((b.s.cited || 0) - (a.s.cited || 0)) || ((b.r.firstOn || 0) - (a.r.firstOn || 0)); });
       var html = '<h3>Engine audit</h3>';
       html += '<p class="fi-sub">Source scorecard — how often each source\'s articles are cited in scans.</p>';
       html += sc.length
@@ -694,7 +699,11 @@
             // machine nominates, the analyst decides what to swap in.
             var weed = (r.s.scans || 0) >= 8 && !(r.s.cited || 0)
               ? ' <span class="fi-weed">never cited — consider swapping for a same-type source</span>' : '';
-            return '<tr><td>' + esc(r.name) + '</td><td>' + (r.s.cited || 0) + ' cited / ' + (r.s.scans || 0) + ' scans' + weed + '</td></tr>';
+            // Measured role from the ledger: first to carry a development that
+            // others later confirmed, or the one confirming it.
+            var role = (r.r.firstOn || r.r.confirmedOn || r.r.solo)
+              ? ' · first on ' + (r.r.firstOn || 0) + ', confirmed ' + (r.r.confirmedOn || 0) + (r.r.solo ? ', ' + r.r.solo + ' unconfirmed' : '') : '';
+            return '<tr><td>' + esc(r.name) + '</td><td>' + (r.s.cited || 0) + ' cited / ' + (r.s.scans || 0) + ' scans' + role + weed + '</td></tr>';
           }).join('') + '</table>'
         : '<p class="fi-sub">No scans recorded yet this deployment.</p>';
       var ck = d.checks || {};
