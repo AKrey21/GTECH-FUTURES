@@ -1124,14 +1124,19 @@ function ingestSources(list, backfill) {
   const run = async () => {
     const now = Date.now();
     const fresh = [];
-    const depth = backfill ? BACKFILL_DEPTH : 20;
+    // backfill is false, true, or { depth, window }: depth = items per source
+    // (Google News caps a query at 100); window swaps the queries' when:90d for
+    // a wider one, so a second pass returns an OLDER set of 100 (dupes drop).
+    const opts = backfill && typeof backfill === 'object' ? backfill : {};
+    const depth = backfill ? Math.max(20, Math.min(100, +opts.depth || BACKFILL_DEPTH)) : 20;
+    const queryOf = (src) => opts.window && src.query ? src.query.replace(/when:\d+d/g, 'when:' + opts.window) : src.query;
     setPhase(backfill ? 'fetching feeds (backfill)' : 'fetching feeds');
     // Whole-phase wall clock: stragglers that beat the cap land in the store
     // late and harmlessly (dedup + untriaged=keep make that safe).
     await hardCap((backfill ? 8 : 4) * 60e3, Promise.all(list.map(async (src) => {
-      let r = await fetchFeed(src.feed || googleNewsUrl(src.query, src.lang), depth);
+      let r = await fetchFeed(src.feed || googleNewsUrl(queryOf(src), src.lang), depth);
       // Feed first, Google News query as the fallback (see handleFeeds).
-      if ((!r.items || !r.items.length) && src.feed && src.query) r = await fetchFeed(googleNewsUrl(src.query, src.lang), depth);
+      if ((!r.items || !r.items.length) && src.feed && src.query) r = await fetchFeed(googleNewsUrl(queryOf(src), src.lang), depth);
       if (!r.items || !r.items.length) return;
       await Promise.all(r.items.map(async (it) => {
         if (it.link && /^https:\/\/news\.google\.com\//.test(it.link)) {
@@ -1543,9 +1548,13 @@ async function handleStore(req, res, qs) {
     if (PILOT.size && !authUser(req)) return sendJSON(res, 401, { error: 'sign in with your access code' });
     const ago = Date.now() - (store.meta.lastBackfill || 0);
     if (ingesting) return sendJSON(res, 409, { error: 'a pull is already running — try again when phase is idle', phase: ingestPhase });
-    if (ago < 6 * 3600e3) return sendJSON(res, 429, { error: `backfill already ran ${Math.round(ago / 60e3)} min ago — allowed once per 6h` });
-    runIngestion(true, true).catch(() => {});
-    return sendJSON(res, 200, { backfill: 'started', depth: BACKFILL_DEPTH, sources: allSources().length });
+    if (ago < 3600e3) return sendJSON(res, 429, { error: `backfill already ran ${Math.round(ago / 60e3)} min ago — allowed once per hour` });
+    // ?depth=20..100 (default 60) and ?window=180d|365d (widens the queries'
+    // when: filter for this pass only) let successive passes reach further back.
+    const depthM = qs.match(/(?:^|&)depth=(\d{2,3})/), winM = qs.match(/(?:^|&)window=(\d{2,3}d)/);
+    const opts = { depth: depthM ? +depthM[1] : BACKFILL_DEPTH, window: winM ? winM[1] : '' };
+    runIngestion(true, opts).catch(() => {});
+    return sendJSON(res, 200, { backfill: 'started', depth: Math.max(20, Math.min(100, opts.depth)), window: opts.window || 'as configured', sources: allSources().length });
   }
   if (/(^|&)refresh=1/.test(qs) && Date.now() - (store.meta.lastPull || 0) > 10 * 60e3) {
     await Promise.race([runIngestion(true).catch(() => {}), new Promise(r => setTimeout(r, 25000))]);

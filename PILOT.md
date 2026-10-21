@@ -136,7 +136,11 @@ with open HTTPS.
   triages and clusters oldest-first so first-reporter vs confirmer is judged on
   when articles were published. It runs in the background on the server
   (20–40 minutes of gateway time; the page stays usable) — watch `phase` on
-  `/api/store`. Guarded: once per 6 hours, never while a pull is running.
+  `/api/store`. Guarded: once per hour, never while a pull is running.
+  To reach further back, add `&depth=100` (Google News's cap per query) and
+  `&window=180d` or `&window=365d` (widens the queries' `when:` filter for
+  that pass, so it returns an older set; duplicates are dropped). Successive
+  passes with wider windows stack up months of history in an afternoon.
   Background model calls are paced to the gateway's ~20/min limit and retried
   once if throttled; whatever still misses is picked up by the next pull
   (every run re-triages stored signals left untriaged and re-clusters kept
