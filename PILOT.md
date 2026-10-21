@@ -141,6 +141,9 @@ with open HTTPS.
   `&window=180d` or `&window=365d` (widens the queries' `when:` filter for
   that pass, so it returns an older set; duplicates are dropped). Successive
   passes with wider windows stack up months of history in an afternoon.
+  `&recluster=1` rebuilds the issue ledger from scratch with the current
+  clustering method (every kept signal re-clustered oldest-first; ~1 model
+  call per 10 signals) — for a ledger built before an improvement to it.
   Background model calls are paced to the gateway's ~20/min limit and retried
   once if throttled; whatever still misses is picked up by the next pull
   (every run re-triages stored signals left untriaged and re-clusters kept

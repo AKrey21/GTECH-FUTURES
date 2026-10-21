@@ -1064,10 +1064,35 @@ function attachToIssue(s, issue) {
   issue.lastSeen = Math.max(issue.lastSeen || 0, s.lastSeen || Date.now());
   if (!issue.domain && s.triage && s.triage.domain) issue.domain = s.triage.domain;
 }
+// Which open issues to show the clusterer for a batch. Recency alone failed on
+// the live ledger (2026-10-21): after a backfill every issue shares a
+// timestamp, so "the 80 most recent" was arbitrary among 400, and the model
+// filed the same development twice (372 of 411 issues were singletons, 114
+// pairs near-duplicates). Now: the open issues whose member articles are
+// closest to the batch's articles (embedding cosine, max over the batch), plus
+// a few most recent; batches without vectors fall back to recency.
+const CLUSTER_CANDIDATES = 60;
+function candidateIssues(sigs, now) {
+  const open = openIssues(now);
+  const embedded = sigs.filter(s => s.emb);
+  if (!embedded.length || open.length <= CLUSTER_CANDIDATES) return open.slice(0, Math.max(CLUSTER_CANDIDATES, 80));
+  const scored = open.map((iss) => {
+    let best = 0;
+    for (const id of iss.signals) {
+      const m = store.signals[id];
+      if (!m || !m.emb) continue;
+      for (const s of embedded) { const d = dotVec(s.emb, m.emb); if (d > best) best = d; }
+    }
+    return { iss, best };
+  });
+  const bySim = scored.filter(x => x.best >= 0.4).sort((a, b) => b.best - a.best).slice(0, CLUSTER_CANDIDATES - 10).map(x => x.iss);
+  const seen = new Set(bySim.map(x => x.id));
+  return bySim.concat(open.filter(x => !seen.has(x.id)).slice(0, CLUSTER_CANDIDATES - bySim.length));
+}
 async function clusterBatch(sigs, now) {
   if (!sigs.length || !KEY) return;
   store.issues = store.issues || {};
-  const open = openIssues(now).slice(0, 80).map(x => ({ id: x.id, title: x.title }));
+  const open = candidateIssues(sigs, now).map(x => ({ id: x.id, title: x.title }));
   const list = sigs.map((s, i) => ({ i, source: s.source, title: s.title, summary: (s.body || s.summary || '').slice(0, 240) }));
   let arr;
   // 3000 tokens for a batch of 10 (see the caller): on the first live pull
@@ -1218,18 +1243,30 @@ function ingestSources(list, backfill) {
       await hardCap(75e3, triageBatch(fresh.slice(i, i + 12)));
     }
     if (backfill) saveStore();
+    // recluster=true rebuilds the ledger from scratch with the current method:
+    // every kept signal is re-clustered oldest-first. One-off, for a ledger
+    // built before candidate selection by similarity existed.
+    if (opts.recluster) {
+      console.log(`recluster: dropping ${Object.keys(store.issues || {}).length} issues and rebuilding the ledger`);
+      store.issues = {};
+      for (const s of Object.values(store.signals)) s.issue = null;
+    }
     // Cluster what was kept this run, plus stored kept signals that never made
     // it into the ledger (a failed clustering batch leaves issue = null).
     const kept = fresh.filter(s => !s.triage || s.triage.keep !== false);
     const keptIds = new Set(kept.map(s => s.id));
     const unassigned = Object.values(store.signals)
       .filter(s => s.triage && s.triage.keep !== false && !s.issue && !keptIds.has(s.id))
-      .sort((a, b) => (b.firstSeen || 0) - (a.firstSeen || 0)).slice(0, backfill ? 300 : 100);
+      .sort((a, b) => (b.firstSeen || 0) - (a.firstSeen || 0)).slice(0, opts.recluster ? Infinity : backfill ? 300 : 100);
     if (unassigned.length) console.log(`mop-up: ${unassigned.length} kept signals not yet in the ledger`);
     kept.push(...unassigned);
     kept.sort((a, b) => (a.firstSeen || 0) - (b.firstSeen || 0));
+    // Embed the batch BEFORE clustering, so candidate issues can be chosen by
+    // similarity (a few embedding calls; the full sweep below catches the rest).
+    setPhase(backfill ? 'embedding (backfill)' : 'embedding');
+    await hardCap(120e3, embedSignals(kept.filter(s => !s.emb)));
     setPhase(backfill ? 'clustering (backfill)' : 'clustering');
-    const clusterDeadline = deadline + (backfill ? 35 : 4) * 60e3;
+    const clusterDeadline = deadline + (opts.recluster ? 60 : backfill ? 35 : 4) * 60e3;
     for (let i = 0; i < kept.length; i += 10) {
       if (Date.now() > clusterDeadline) { console.log('clustering deadline hit: remaining signals stay unassigned'); break; }
       await hardCap(75e3, clusterBatch(kept.slice(i, i + 10), now));
@@ -1552,9 +1589,9 @@ async function handleStore(req, res, qs) {
     // ?depth=20..100 (default 60) and ?window=180d|365d (widens the queries'
     // when: filter for this pass only) let successive passes reach further back.
     const depthM = qs.match(/(?:^|&)depth=(\d{2,3})/), winM = qs.match(/(?:^|&)window=(\d{2,3}d)/);
-    const opts = { depth: depthM ? +depthM[1] : BACKFILL_DEPTH, window: winM ? winM[1] : '' };
+    const opts = { depth: depthM ? +depthM[1] : BACKFILL_DEPTH, window: winM ? winM[1] : '', recluster: /(?:^|&)recluster=1/.test(qs) };
     runIngestion(true, opts).catch(() => {});
-    return sendJSON(res, 200, { backfill: 'started', depth: Math.max(20, Math.min(100, opts.depth)), window: opts.window || 'as configured', sources: allSources().length });
+    return sendJSON(res, 200, { backfill: 'started', depth: Math.max(20, Math.min(100, opts.depth)), window: opts.window || 'as configured', recluster: opts.recluster, sources: allSources().length });
   }
   if (/(^|&)refresh=1/.test(qs) && Date.now() - (store.meta.lastPull || 0) > 10 * 60e3) {
     await Promise.race([runIngestion(true).catch(() => {}), new Promise(r => setTimeout(r, 25000))]);
