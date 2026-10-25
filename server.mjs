@@ -165,6 +165,17 @@ function rateLimited(ip) {
 // proven unreliable in rare connection states (a wedged boot fetch held the
 // whole ingestion's Promise.all hostage while a fresh fetch to the SAME host
 // worked) — so every pipeline phase gets one of these, not just a signal.
+// Run fn over items with at most `width` in flight. Source fetches go through
+// this: 14 Google News queries fired at once (2026-10-25, depth 100) came back
+// truncated from GCC — 18, 20 and 30 items where the same queries return 100
+// one at a time — so the pull is polite to the index instead of a burst.
+async function pool(items, width, fn) {
+  const queue = items.slice();
+  const workers = Array.from({ length: Math.min(width, queue.length) }, async () => {
+    while (queue.length) { const it = queue.shift(); try { await fn(it); } catch (e) { console.error('pool item failed:', e && e.message); } }
+  });
+  await Promise.all(workers);
+}
 function hardCap(ms, promise, fallback) {
   return Promise.race([
     Promise.resolve(promise).catch(() => fallback),
@@ -548,9 +559,11 @@ function parseFeed(xml, max) {
   }
   return out;
 }
+// 15s: CNA's full outbound feed is large and, over the GCC egress, timed out
+// at 8s on every pull (0 items) while answering in time from outside.
 async function fetchFeed(url, max) {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 8000);
+  const t = setTimeout(() => ctrl.abort(), 15000);
   try {
     const res = await fetch(url, { headers: { 'User-Agent': FEED_UA, 'Accept': 'application/rss+xml, application/xml, text/xml, */*' }, redirect: 'follow', signal: ctrl.signal });
     if (!res.ok) return { error: 'HTTP ' + res.status, items: [] };
@@ -845,7 +858,8 @@ const WATCHED_SOURCES = [
   { name: 'OECD Education & Skills', query: 'site:oecd.org (skills OR "adult learning" OR "vocational" OR "future of work" OR workforce OR "AI in education") when:180d', tier: 1 },
   { name: 'MOM (Singapore)', query: 'site:mom.gov.sg (employment OR workforce OR skills OR retrenchment OR wages) when:90d', tier: 1 },
   { name: 'Straits Times (Singapore)', feed: 'https://www.straitstimes.com/news/singapore/rss.xml', tier: 1 },
-  { name: 'Channel NewsAsia', feed: 'https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml', tier: 1 },
+  { name: 'Channel NewsAsia', feed: 'https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml',
+    query: 'site:channelnewsasia.com Singapore (jobs OR workers OR skills OR employment OR retrenchment OR wages OR training OR employers) when:30d', tier: 1 },
   { name: 'ILO', query: 'site:ilo.org (employment OR skills OR "future of work" OR labour) when:180d', tier: 1 },
   { name: 'World Economic Forum', query: 'site:weforum.org ("future of jobs" OR reskilling OR "skills gap" OR "jobs of tomorrow" OR "lifelong learning") when:180d', tier: 1 },
   { name: 'Centre for Strategic Futures', query: '"Centre for Strategic Futures" OR site:csf.gov.sg', tier: 1 },
@@ -1157,7 +1171,7 @@ function ingestSources(list, backfill) {
     setPhase(backfill ? 'fetching feeds (backfill)' : 'fetching feeds');
     // Whole-phase wall clock: stragglers that beat the cap land in the store
     // late and harmlessly (dedup + untriaged=keep make that safe).
-    await hardCap((backfill ? 8 : 4) * 60e3, Promise.all(list.map(async (src) => {
+    await hardCap((backfill ? 10 : 5) * 60e3, pool(list, 3, async (src) => {
       let r = await fetchFeed(src.feed || googleNewsUrl(queryOf(src), src.lang), depth);
       // Feed first, Google News query as the fallback (see handleFeeds).
       if ((!r.items || !r.items.length) && src.feed && src.query) r = await fetchFeed(googleNewsUrl(queryOf(src), src.lang), depth);
@@ -1214,7 +1228,7 @@ function ingestSources(list, backfill) {
         store.signals[id] = s;
         fresh.push(s);
       }
-    })));
+    }));
     // Checkpoint: fetched articles are safe on disk even if triage below is
     // interrupted; untriaged items serve as keep (fail-safe) until tagged.
     saveStore();
