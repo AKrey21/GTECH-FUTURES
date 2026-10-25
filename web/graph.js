@@ -30,6 +30,16 @@
     wide: ["Sees wide", "#c0893a"],
     confirms: ["Confirms", "#3e8e6a"],
   };
+  // Two tiers, one rule each: tier 1 is OF RECORD (what a briefing would cite
+  // anyway); tier 2 is EARLY WARNING and keeps its place only by measurably
+  // being first — the server grades it earned / on probation / at risk.
+  var TIERS = {
+    "of record": ["Tier 1 · of record", "#3e8e6a"],
+    "earned": ["Tier 2 · early warning, earned", "#c95c6a"],
+    "probation": ["Tier 2 · on probation", "#d2a640"],
+    "at risk": ["Tier 2 · at risk", "#9aa39b"],
+    "tester-added": ["Added by a tester", "#5b7fb5"],
+  };
   var FAMILIES = [
     [/^(Trade press|Press)/i, "Press", "confirms"],
     [/^(Journals|Research)/i, "Journals & research", "early"],
@@ -84,7 +94,9 @@
     nodes.forEach(function (n) {
       var f = familyOf(n.name), r = roleOf(n, f);
       n.family = f.family; n.label = f.label; n.roleKey = r.role; n.measured = r.measured;
-      n.type = ROLES[r.role][0]; n.colour = ROLES[r.role][1];
+      n.roleName = ROLES[r.role][0];
+      var t = TIERS[n.status] || TIERS["tester-added"];
+      n.type = t[0]; n.colour = t[1];
       colourByType[n.type] = n.colour;
       n.r = 10 + Math.sqrt(n.kept) * 4.2;
       n.deg = 0; n.corro = 0;
@@ -113,8 +125,9 @@
     var W = Math.min(900, Math.max(560, window.innerWidth - 80)), H = Math.min(560, Math.max(400, window.innerHeight - 260));
     card.innerHTML =
       '<h3>Source map</h3>' +
-      '<p class="fi-sub">Why each source is followed, and how they relate. Colour = the role it plays for the briefing ' +
-      '(sees early · sees wide · confirms), measured from the issue ledger where it has the record. Bubble size = usable signals this cycle. ' +
+      '<p class="fi-sub">Why each source is followed. <b>Inner ring, tier 1:</b> of record — what a briefing would cite anyway, read systematically. ' +
+      '<b>Outer ring, tier 2:</b> early warning — on the list only while the ledger shows it reports developments before tier 1 confirms them ' +
+      '(earned = first on 2+ developments or cited in a scan; 30 days of probation first). Bubble size = usable signals. ' +
       '<span class="fi-g-key"><i style="background:#2f6b3a"></i>same issue in the ledger (confirmed corroboration)</span> ' +
       '<span class="fi-g-key"><i style="background:#b9bfb4"></i>articles on the same ground (embedding similarity ≥ ' + g.sim + ')</span>. ' +
       'Hover a bubble for its record; click to pin its neighbours.</p>' +
@@ -122,8 +135,17 @@
       '<div class="fi-g-legend">' + types.map(function (t) {
         return '<span><i style="background:' + colourByType[t] + '"></i>' + esc(t) + '</span>';
       }).join("") + '</div>' +
-      (isolated.length ? '<p class="fi-sub" style="margin-top:10px">No relationship found yet: <b>' + isolated.map(function (n) { return esc(n.name); }).join("</b>, <b>") +
-        '</b> — a unique lens if it earns citations, a rotation candidate if it never does.</p>' : '') +
+      (function () {
+        // Tier 1 is closed, so an unlinked of-record source is just one with no
+        // shared development yet; the rotation warning applies to tier 2 and
+        // tester-added sources only.
+        var t1 = isolated.filter(function (n) { return n.tier === 1; }), rest = isolated.filter(function (n) { return n.tier !== 1; });
+        var html = '';
+        if (t1.length) html += '<p class="fi-sub" style="margin-top:10px">Of record, no shared development yet: <b>' + t1.map(function (n) { return esc(n.name); }).join("</b>, <b>") + '</b>.</p>';
+        if (rest.length) html += '<p class="fi-sub" style="margin-top:' + (t1.length ? 4 : 10) + 'px">No relationship found yet: <b>' + rest.map(function (n) { return esc(n.name); }).join("</b>, <b>") +
+          '</b> — keeps its place only if it is first on developments or earns citations.</p>';
+        return html;
+      })() +
       '<div class="fi-row"><span class="fi-sub" style="margin:0">' + nodes.length + ' sources · ' + edges.filter(function (e) { return e.corroborated; }).length +
         ' corroborating pair' + (edges.filter(function (e) { return e.corroborated; }).length === 1 ? '' : 's') + ' · ' + edges.length + ' related pair' + (edges.length === 1 ? '' : 's') +
         '</span><span class="fi-spacer"></span><button class="fi-btn ghost" id="fiGraphClose" type="button">Close</button></div>';
@@ -136,36 +158,45 @@
 
     // ---- force layout: repulsion between all bubbles, springs along edges,
     //      gentle pull to the centre; related sources settle together ----
-    var cx = W / 2, cy = H / 2;
-    // Scale the spacing to the canvas and the crowd, so 9 sources fill it and
-    // 30 still fit; labels sit below bubbles, so keep extra room vertically.
-    var span = Math.min(W, H), spread = Math.max(70, span / Math.sqrt(nodes.length) * 0.9);
-    nodes.forEach(function (n, i) {
-      var a = (i / nodes.length) * Math.PI * 2;
-      n.x = cx + Math.cos(a) * W * 0.36; n.y = cy + Math.sin(a) * H * 0.34; n.vx = 0; n.vy = 0;
+    // ---- two rings: tier 1 (of record) inside, tier 2 and tester-added
+    //      outside. A tier-2 source sits at the angle of the tier-1 source it
+    //      relates to most, so its lines are short and its place on the list
+    //      is visibly about who confirms it. ----
+    var cx = W / 2, cy = H / 2 - 6;
+    var inner = nodes.filter(function (n) { return n.tier === 1; }), outer = nodes.filter(function (n) { return n.tier !== 1; });
+    var R1 = Math.min(W * 0.3, H * 0.25), R2 = Math.min(W * 0.45, H * 0.42);
+    if (!inner.length) { inner = outer; outer = []; R1 = R2; }
+    inner.forEach(function (n, i) {
+      var a = -Math.PI / 2 + (i / inner.length) * Math.PI * 2;
+      n.a = a; n.x = cx + Math.cos(a) * R1; n.y = cy + Math.sin(a) * R1;
     });
-    function step(alpha) {
-      var i, j, a, b, dx, dy, d, f;
-      for (i = 0; i < nodes.length; i++) for (j = i + 1; j < nodes.length; j++) {
-        a = nodes[i]; b = nodes[j]; dx = b.x - a.x; dy = b.y - a.y; d = Math.sqrt(dx * dx + dy * dy) || 1;
-        var min = a.r + b.r + 44;
-        f = (d < min ? (min - d) * 0.8 : 0) + (spread * spread * 1.15) / (d * d);
-        a.vx -= dx / d * f * alpha; a.vy -= dy / d * f * alpha; b.vx += dx / d * f * alpha; b.vy += dy / d * f * alpha;
-      }
+    function partnerAngle(n) {
+      var best = null, score = -1;
       edges.forEach(function (e) {
-        a = e.A; b = e.B; dx = b.x - a.x; dy = b.y - a.y; d = Math.sqrt(dx * dx + dy * dy) || 1;
-        var strength = Math.min(1, e.overlap + e.corroborated * 0.5);
-        var want = a.r + b.r + spread * (0.9 + (1 - strength) * 1.1);
-        f = (d - want) * 0.03 * (0.4 + strength);
-        a.vx += dx / d * f * alpha; a.vy += dy / d * f * alpha; b.vx -= dx / d * f * alpha; b.vy -= dy / d * f * alpha;
+        var o = e.A === n ? e.B : e.B === n ? e.A : null;
+        if (!o || o.tier !== 1) return;
+        var sc = e.corroborated * 10 + e.pairs;
+        if (sc > score) { score = sc; best = o; }
       });
-      nodes.forEach(function (n) {
-        n.vx += (cx - n.x) * 0.007 * alpha; n.vy += (cy - n.y) * 0.008 * alpha;
-        n.vx *= 0.8; n.vy *= 0.8; n.x += n.vx; n.y += n.vy;
-        n.x = Math.max(n.r + 8, Math.min(W - n.r - 8, n.x)); n.y = Math.max(n.r + 8, Math.min(H - n.r - 22, n.y));
-      });
+      return best ? best.a : null;
     }
-    for (var k = 0; k < 320; k++) step(1 - k / 360);
+    // Place by partner angle, then spread anything closer than ~one bubble apart.
+    outer.forEach(function (n, i) { var pa = partnerAngle(n); n.a = pa === null ? -Math.PI / 2 + ((i + 0.5) / outer.length) * Math.PI * 2 : pa; });
+    outer.sort(function (p, q) { return p.a - q.a; });
+    var minGap = outer.length ? Math.max(0.35, (Math.PI * 2) / outer.length * 0.85) : 0;
+    for (var pass = 0; pass < 6; pass++) {
+      for (var i2 = 1; i2 < outer.length; i2++) if (outer[i2].a - outer[i2 - 1].a < minGap) outer[i2].a = outer[i2 - 1].a + minGap;
+      if (outer.length > 1 && outer[0].a + Math.PI * 2 - outer[outer.length - 1].a < minGap) { var shift = (minGap - (outer[0].a + Math.PI * 2 - outer[outer.length - 1].a)) / 2; outer.forEach(function (n, k2) { n.a -= shift * (k2 / outer.length); }); }
+    }
+    outer.forEach(function (n) { n.x = cx + Math.cos(n.a) * R2 * 1.0; n.y = cy + Math.sin(n.a) * R2; });
+    nodes.forEach(function (n) { n.x = Math.max(n.r + 8, Math.min(W - n.r - 8, n.x)); n.y = Math.max(n.r + 8, Math.min(H - n.r - 22, n.y)); });
+    // faint ring guides
+    function rings() {
+      ctx.save(); ctx.strokeStyle = "rgba(140,148,140,.22)"; ctx.setLineDash([4, 6]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.ellipse(cx, cy, R1, R1, 0, 0, Math.PI * 2); ctx.stroke();
+      if (outer.length) { ctx.beginPath(); ctx.ellipse(cx, cy, R2, R2, 0, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.restore();
+    }
 
     var hover = null, pinned = null;
     function neighbours(n) {
@@ -175,6 +206,7 @@
     }
     function draw() {
       ctx.clearRect(0, 0, W, H);
+      rings();
       var focus = pinned || hover, near = focus ? neighbours(focus) : null;
       edges.forEach(function (e) {
         var dim = near && !(near[e.A.name] && near[e.B.name] && (e.A === focus || e.B === focus));
@@ -213,9 +245,14 @@
           (n.solo ? ' · ' + n.solo + ' only it has reported' : '') +
           (n.firstExamples && n.firstExamples.length ? ' — e.g. “' + esc(n.firstExamples[0].slice(0, 70)) + '”' : '')
         : 'No shared development in the ledger yet';
-      var html = '<b>' + esc(n.name) + '</b><br><span class="fi-g-type" style="color:' + n.colour + '">' + esc(n.type) +
-        (n.measured ? ' (measured)' : ' (by source type: ' + esc(n.label || n.family) + ')') + (n.isDefault ? ' · daily default' : ' · tester-added') + '</span>' +
+      var rule = n.tier === 2
+        ? (n.status === 'earned' ? 'Keeps its place: ' : n.status === 'probation' ? 'On probation (30 days to show it): ' : 'At risk of rotating out: ') +
+          'the rule is first on 2+ developments others confirm, or cited in a scan.'
+        : n.tier === 1 ? 'Closed tier: on the list because a briefing would cite it anyway.' : '';
+      var html = '<b>' + esc(n.name) + '</b><br><span class="fi-g-type" style="color:' + n.colour + '">' + esc(n.type) + '</span>' +
         (n.why ? '<div class="fi-g-row fi-g-why">' + esc(n.why) + '</div>' : '') +
+        (rule ? '<div class="fi-g-row">' + esc(rule) + '</div>' : '') +
+        '<div class="fi-g-row">Role: ' + esc(n.roleName) + (n.measured ? ' (measured)' : ' (by source type: ' + esc(n.label || n.family) + ')') + '</div>' +
         '<div class="fi-g-row">' + esc(record) + '</div>' +
         '<div class="fi-g-row">' + n.kept + ' usable signal' + (n.kept === 1 ? '' : 's') + (n.discarded ? ' (' + n.discarded + ' filtered out)' : '') +
         ' · in ' + n.issues + ' tracked issue' + (n.issues === 1 ? '' : 's') + ' · cited in ' + n.cited + ' of ' + n.scans + ' scan' + (n.scans === 1 ? '' : 's') + '</div>' +

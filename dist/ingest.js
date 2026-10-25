@@ -703,7 +703,9 @@
             // others later confirmed, or the one confirming it.
             var role = (r.r.firstOn || r.r.confirmedOn || r.r.solo)
               ? ' · first on ' + (r.r.firstOn || 0) + ', confirmed ' + (r.r.confirmedOn || 0) + (r.r.solo ? ', ' + r.r.solo + ' unconfirmed' : '') : '';
-            return '<tr><td>' + esc(r.name) + '</td><td>' + (r.s.cited || 0) + ' cited / ' + (r.s.scans || 0) + ' scans' + role + weed + '</td></tr>';
+            var t = (d.tiers || {})[r.name];
+            var tier = t ? (t.tier === 1 ? '<span class="fi-tier t1">tier 1 · of record</span>' : '<span class="fi-tier ' + (t.status === 'earned' ? 't2' : t.status === 'probation' ? 'tp' : 'tr') + '">tier 2 · ' + esc(t.status) + '</span>') : '';
+            return '<tr><td>' + esc(r.name) + ' ' + tier + '</td><td>' + (r.s.cited || 0) + ' cited / ' + (r.s.scans || 0) + ' scans' + role + weed + '</td></tr>';
           }).join('') + '</table>'
         : '<p class="fi-sub">No scans recorded yet this deployment.</p>';
       var ck = d.checks || {};
@@ -886,6 +888,8 @@
       ".fi-model{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c6b5f;margin-left:auto;}" +
       ".fi-model select{border:1px solid #c9cfba;border-radius:8px;padding:5px 8px;font:inherit;font-size:12.5px;background:#fff;color:#2d3a31;cursor:pointer;max-width:250px;}" +
       ".fi-weed{color:#a04b3c;font-size:11.5px;}" +
+      ".fi-tier{display:inline-block;border-radius:8px;padding:0 7px;font-size:10.5px;margin-left:4px;white-space:nowrap;vertical-align:1px;}" +
+      ".fi-tier.t1{color:#2f6b3a;background:#e6f1e8;} .fi-tier.t2{color:#a04b3c;background:#f7e9e4;} .fi-tier.tp{color:#8a6d1f;background:#faf0d6;} .fi-tier.tr{color:#5c6b5f;background:#ebeee7;}" +
       ".fi-steeple{font-size:11.5px;color:#5c6b5f;margin-top:3px;cursor:default;}" +
       ".fi-steeple .fi-st0{color:#a04b3c;font-weight:600;}";
     document.head.appendChild(st);

@@ -107,10 +107,14 @@ patch('csf-defaults-a',
   '      "[OECD] AI tutors and adaptive learning are improving, and interest is growing in skills-based, verifiable digital credentials that record what a person can actually do.",\n' +
   '      "[OECD] Reports that the half-life of job-specific skills keeps shortening, strengthening the case for continuous, modular reskilling over one-off qualifications."\n' +
   '    ]},',
-  '{ id: "journals", name: "arXiv (Computers & Society)", kind: "Journals", method: "RSS feed", url: "https://arxiv.org/list/cs.CY/recent", excerpts: [] },\n' +
-  '    { id: "fringe", name: "Ethan Mollick", kind: "Self-publishing", method: "RSS feed", url: "https://www.oneusefulthing.org/", excerpts: [] },\n' +
-  '    { id: "sgpolicy", name: "Singapore skills policy", kind: "Government & policy", method: "RSS feed", url: "https://www.mom.gov.sg/", excerpts: [] },\n' +
-  '    { id: "zh", name: "SG Chinese press (zh)", kind: "Different languages", method: "RSS feed", url: "https://www.zaobao.com.sg/", excerpts: [] },'
+  // Tier 1 (of record) + tier 2 (early warning) — must mirror WATCHED_SOURCES in
+  // server.mjs: a card that is not on the daily list gets saved as a tester's
+  // personal source, so a stale card here would silently keep a dropped source.
+  '{ id: "sgpolicy", name: "Singapore skills policy", kind: "Government & policy", method: "RSS feed", url: "https://www.mom.gov.sg/", excerpts: [] },\n' +
+  '    { id: "mom", name: "MOM (Singapore)", kind: "Government & policy", method: "RSS feed", url: "https://www.mom.gov.sg/", excerpts: [] },\n' +
+  '    { id: "st", name: "Straits Times (Singapore)", kind: "Press · Singapore", method: "RSS feed", url: "https://www.straitstimes.com/", excerpts: [] },\n' +
+  '    { id: "cna", name: "Channel NewsAsia", kind: "Press · Singapore", method: "RSS feed", url: "https://www.channelnewsasia.com/", excerpts: [] },\n' +
+  '    { id: "journals", name: "arXiv (Computers & Society)", kind: "Journals", method: "RSS feed", url: "https://arxiv.org/list/cs.CY/recent", excerpts: [] },'
 );
 patch('csf-defaults-b',
   '{ id: "policy", name: "World Economic Forum", kind: "Think tanks & gov", method: "RSS feed", url: "https://www.weforum.org/", lastItem: "15 Jun 2026", excerpts: [\n' +
@@ -118,6 +122,9 @@ patch('csf-defaults-b',
   '      "[World Economic Forum] Its latest Future of Jobs analysis flags analytical thinking, resilience and AI literacy as the skills employers expect to rise most this decade."\n' +
   '    ]},',
   '{ id: "oecd", name: "OECD Education & Skills", kind: "Think tanks & gov", method: "RSS feed", url: "https://www.oecd.org/education/", excerpts: [] },\n' +
+  '    { id: "policy", name: "World Economic Forum", kind: "Think tanks & gov", method: "RSS feed", url: "https://www.weforum.org/", excerpts: [] },\n' +
+  '    { id: "ilo", name: "ILO", kind: "Multilateral · labour", method: "RSS feed", url: "https://www.ilo.org/", excerpts: [] },\n' +
+  '    { id: "csf", name: "Centre for Strategic Futures", kind: "Government foresight", method: "RSS feed", url: "https://www.csf.gov.sg/", excerpts: [] },\n' +
   '    { id: "sgnews", name: "CNA Commentary", kind: "Trade press", method: "RSS feed", url: "https://www.channelnewsasia.com/commentary", excerpts: [] },\n' +
   '    { id: "sgforum", name: "Mothership", kind: "Forums · sentiment", method: "RSS feed", url: "https://mothership.sg/", excerpts: [] },\n' +
   '    { id: "sgenv", name: "Eco-Business", kind: "Trade press", method: "RSS feed", url: "https://www.eco-business.com/", excerpts: [] },\n' +

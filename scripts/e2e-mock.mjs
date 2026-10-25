@@ -30,6 +30,13 @@ const FEEDS = [
   [/q=.*Commentary/, [{ t: 'Commentary: Is the four-day week coming to Singapore?', l: 'https://www.channelnewsasia.com/commentary/four-day', d: FD }]],
   [/q=.*mothership/, [{ t: "S'pore firm trials 4-day week, staff react", l: 'https://mothership.sg/2026/10/four-day', d: FD }]],
   [/q=.*fulcrum/, [{ t: 'Johor SEZ draws Singapore back-office jobs', l: 'https://fulcrum.sg/jsez' }]],
+  // tier 1 of-record additions (2026-10-25)
+  [/straitstimes\.com\/news\/singapore\/rss/, [{ t: 'More firms tap SkillsFuture Enterprise Credit', l: 'https://www.straitstimes.com/singapore/sfec' }]],
+  [/rss-outbound-feed\?_format=xml$/, [{ t: 'Retrenchments ease in Q3, MOM data shows', l: 'https://www.channelnewsasia.com/singapore/retrenchments-q3' }]],
+  [/q=.*mom\.gov\.sg/, [{ t: 'Labour Market Report Q3', l: 'https://www.mom.gov.sg/lmr-q3' }]],
+  [/q=.*ilo\.org/, [{ t: 'ILO: platform work governance report', l: 'https://www.ilo.org/platform-work' }]],
+  [/q=.*weforum\.org/, [{ t: 'Future of Jobs: AI literacy rises fastest', l: 'https://www.weforum.org/future-of-jobs' }]],
+  [/q=.*Strategic Futures/, [{ t: 'CSF: emerging strategic issues 2026', l: 'https://www.csf.gov.sg/esi-2026' }]],
 ];
 let llmCalls = { triage: 0, cluster: 0, scan: 0, audit: 0, other: 0 };
 globalThis.fetch = async (url, opts) => {
@@ -64,8 +71,8 @@ const fails = []; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m
 
 // 1) cold store: first /api/store warms it via ingestion of the 10 defaults
 let st = await get('/api/store');
-ok(st.defaults && st.defaults.length === 10, 'store reports 10 defaults');
-ok(st.sources.filter(s => s.items.length).length >= 8, 'items served for most default sources (' + st.sources.filter(s => s.items.length).length + ')');
+ok(st.defaults && st.defaults.length === 14, 'store reports 14 defaults (9 of record + 5 early warning)');
+ok(st.sources.filter(s => s.items.length).length >= 12, 'items served for most default sources (' + st.sources.filter(s => s.items.length).length + ')');
 const fd = (st.issues || []).find(i => /four-day/i.test(i.title));
 ok(!!fd, 'four-day issue exists in the ledger');
 ok(fd && fd.unconnected >= 4, 'four-day issue corroborated by >=4 unconnected publishers (' + (fd && fd.publishers.join(', ')) + ')');

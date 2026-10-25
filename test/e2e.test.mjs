@@ -188,6 +188,12 @@ test('graph: one node per source, edges only where a relationship exists', async
   assert.equal(g.edges[0].pairs, 0);
   const audit = await (await fetch(base + '/api/store?audit=1')).json();
   assert.equal(audit.roles['Nikkei Asia'].firstOn, 1, 'the audit scorecard carries the same role counts');
+  // tiers: the store's sources are not on the daily list, so they are tester-added;
+  // the daily list itself grades tier 1 as of record and tier 2 as probation/earned
+  assert.equal(nikkei.status, 'tester-added');
+  assert.equal(audit.tiers['Straits Times (Singapore)'].status, 'of record');
+  assert.equal(audit.tiers['CNA Commentary'].tier, 2);
+  assert.equal(audit.tiers['CNA Commentary'].status, 'probation', 'fresh store: no record yet, within 30 days');
 });
 
 test('audit view lists the quarantined signal', async () => {

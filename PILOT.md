@@ -112,10 +112,23 @@ with open HTTPS.
   engine's memory (semantic + keyword search, `POST /api/retrieve`). A topic with
   no support is stated as a gap in the scan input. Calibrate on the live store
   with `/api/retrieve?debug=1&dense=0.3&sparse=0.03`.
+- **Two tiers, one rule each (the daily list, decided 2026-10-25).** The
+  briefing's purpose is to inform leadership about the future ahead and what
+  it means for SWDA, so a source is on the daily list for one of two reasons
+  only. **Tier 1, of record:** the institutions and outlets a briefing would
+  cite anyway (MOM, SSG/WSG via outlets of record, Straits Times, CNA news,
+  OECD, ILO, WEF, CSF, McKinsey), read systematically instead of ad hoc; a
+  closed tier. **Tier 2, early warning:** on the list only while the issue
+  ledger shows it reports developments *before* tier 1 confirms them — a
+  tier-2 source is **earned** when it has been first on 2+ developments or
+  cited in a scan, **on probation** for its first 30 days, and **at risk**
+  after that; at-risk sources rotate to the catalog and new candidates go on
+  probation (currently CNA Commentary, Mothership, ISEAS Fulcrum, arXiv,
+  Eco-Business). The Source map draws the tiers as two rings and the Engine
+  audit scorecard labels each source's tier and status.
 - **Source map** — the **Source map** link beside Engine audit answers "why do
-  we follow this source?" The briefing's purpose is to inform leadership about
-  the future ahead and what it means for SWDA, so a source earns its place by
-  one of three roles, and the map colours it by that role: **sees early**
+  we follow this source?" A source's role is one of three, and the tooltip
+  shows it alongside its tier: **sees early**
   (carries developments before they are mainstream), **sees wide** (brings a
   direction the rest of the list would miss), **confirms** (of record; lets a
   finding be said with confidence). The role is *measured* from the issue

@@ -832,36 +832,35 @@ async function handleImport(req, res) {
 
 // Server-side copy of the default watched sources (names must match the cards).
 const WATCHED_SOURCES = [
-  // Ten daily defaults, chosen for a spread across the CSF handbook's source types
-  // and STEEPLE with a Singapore-first lens (SOURCES.md explains each). The scan
-  // prompt has a hard size budget, so breadth lives in the catalog and persona
-  // packs, not here. Firehose feeds (Mothership, Fulcrum) are pulled by their
-  // keyword query so the daily slice is on-mission; Eco-Business pulls its feed
-  // first and falls back to its query.
-  { name: 'McKinsey Global Institute', feed: 'https://www.mckinsey.com/insights/rss' },
-  { name: 'arXiv (Computers & Society)', feed: 'https://rss.arxiv.org/rss/cs.CY' },
-  { name: 'Ethan Mollick', feed: 'https://www.oneusefulthing.org/feed' },
-  // Outlet-allowlisted: parliamentary/policy signals must cite forwardable,
-  // of-record outlets (ST/CNA/BT/gov.sg), not aggregators like theindependent.sg.
-  { name: 'Singapore skills policy', query: 'Singapore (SkillsFuture OR "Workforce Singapore" OR "Ministry of Manpower") (skills OR jobs OR training OR workforce) (site:channelnewsasia.com OR site:straitstimes.com OR site:businesstimes.com.sg OR site:gov.sg) when:90d' },
-  // Singapore Chinese edition (Zaobao/8world/Shin Min) replaces the mainland
-  // '人工智能 就业 技能' beat as the daily different-languages leg; the mainland
-  // beat stays in the catalog as 'Chinese tech & jobs press'.
-  { name: "SG Chinese press (zh)", query: "(site:zaobao.com.sg OR site:8world.com OR site:shinmin.sg) (裁员 OR 技能培训 OR 技能创前程 OR 零工 OR 退休年龄 OR 人工智能 OR 雇主 OR 中小企业 OR 职场) when:90d", lang: "zh" },
-  { name: 'OECD Education & Skills', query: 'site:oecd.org (skills OR "adult learning" OR "vocational" OR "future of work" OR workforce OR "AI in education") when:180d' },
-  // Of-record opinion (academics/practitioners), free in full — replaces the CNA
-  // firehose feed, which stays in the catalog as 'Channel NewsAsia'.
-  { name: "CNA Commentary", query: "site:channelnewsasia.com \"Commentary:\" (jobs OR skills OR workers OR AI OR education OR careers OR gig OR retirement) when:90d" },
-  // Youth/ground sentiment (the handbook's forum type via an outlet of record).
-  { name: "Mothership", query: "site:mothership.sg (jobs OR salary OR retrenched OR retrenchment OR boss OR intern OR \"fresh grad\" OR \"work from home\" OR SkillsFuture OR AI OR employer) when:90d" },
-  // Environmental STEEPLE leg, Singapore-headquartered (feed confirmed by two directories).
-  { name: "Eco-Business", feed: "https://www.eco-business.com/feeds/all", query: "site:eco-business.com Singapore (\"green jobs\" OR \"green skills\" OR workforce OR \"just transition\" OR \"sustainability reporting\") when:90d" },
-  // Regional think-tank leg: SEA labour flows, JS-SEZ, neighbour skills policy.
-  { name: "ISEAS Fulcrum", query: "site:fulcrum.sg (workforce OR labour OR skills OR AI OR \"digital economy\" OR migration OR ageing OR education OR Johor) when:90d" },
+  // Two tiers, one rule each (decided 2026-10-25; SOURCES.md has the per-source notes).
+  // TIER 1 — OF RECORD: the institutions and outlets a briefing would cite anyway,
+  // read systematically instead of ad hoc. Closed by definition.
+  // TIER 2 — EARLY WARNING, on probation: allowed on the list only because the
+  // issue ledger shows they report developments BEFORE tier 1 confirms them
+  // (sourceStatus: earned / probation / at risk). A tier-2 source that stops
+  // being first rotates to the catalog; a new candidate goes on probation.
+  // -- tier 1 --
+  { name: 'McKinsey Global Institute', feed: 'https://www.mckinsey.com/insights/rss', tier: 1 },
+  { name: 'Singapore skills policy', query: 'Singapore (SkillsFuture OR "Workforce Singapore" OR "Ministry of Manpower") (skills OR jobs OR training OR workforce) (site:channelnewsasia.com OR site:straitstimes.com OR site:businesstimes.com.sg OR site:gov.sg) when:90d', tier: 1 },
+  { name: 'OECD Education & Skills', query: 'site:oecd.org (skills OR "adult learning" OR "vocational" OR "future of work" OR workforce OR "AI in education") when:180d', tier: 1 },
+  { name: 'MOM (Singapore)', query: 'site:mom.gov.sg (employment OR workforce OR skills OR retrenchment OR wages) when:90d', tier: 1 },
+  { name: 'Straits Times (Singapore)', feed: 'https://www.straitstimes.com/news/singapore/rss.xml', tier: 1 },
+  { name: 'Channel NewsAsia', feed: 'https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml', tier: 1 },
+  { name: 'ILO', query: 'site:ilo.org (employment OR skills OR "future of work" OR labour) when:180d', tier: 1 },
+  { name: 'World Economic Forum', query: 'site:weforum.org ("future of jobs" OR reskilling OR "skills gap" OR "jobs of tomorrow" OR "lifelong learning") when:180d', tier: 1 },
+  { name: 'Centre for Strategic Futures', query: '"Centre for Strategic Futures" OR site:csf.gov.sg', tier: 1 },
+  // -- tier 2 --
+  { name: "CNA Commentary", query: "site:channelnewsasia.com \"Commentary:\" (jobs OR skills OR workers OR AI OR education OR careers OR gig OR retirement) when:90d", tier: 2 },
+  { name: "Mothership", query: "site:mothership.sg (jobs OR salary OR retrenched OR retrenchment OR boss OR intern OR \"fresh grad\" OR \"work from home\" OR SkillsFuture OR AI OR employer) when:90d", tier: 2 },
+  { name: "ISEAS Fulcrum", query: "site:fulcrum.sg (workforce OR labour OR skills OR AI OR \"digital economy\" OR migration OR ageing OR education OR Johor) when:90d", tier: 2 },
+  { name: 'arXiv (Computers & Society)', feed: 'https://rss.arxiv.org/rss/cs.CY', tier: 2 },
+  { name: "Eco-Business", feed: "https://www.eco-business.com/feeds/all", query: "site:eco-business.com Singapore (\"green jobs\" OR \"green skills\" OR workforce OR \"just transition\" OR \"sustainability reporting\") when:90d", tier: 2 },
 ];
 
 let store = { signals: {}, issues: {}, meta: { lastPull: 0 } };
 try { store = JSON.parse(fs.readFileSync(STORE_PATH, 'utf8')); } catch { /* fresh store */ }
+store.meta.tier2Since = store.meta.tier2Since || {};
+for (const x of WATCHED_SOURCES) if (x.tier === 2 && !store.meta.tier2Since[x.name]) store.meta.tier2Since[x.name] = Date.now();
 store.issues = store.issues || {};
 // Healing pass: signals ingested before the entity-encoded-markup fix carry raw
 // <a>/<font> junk or title-echo summaries in the store; re-clean them in place
@@ -1385,6 +1384,12 @@ const GRAPH_SIM = parseFloat(process.env.GRAPH_SIM || '0.60');
 // and the ledger measures which of those it actually does (sourceRoles).
 const SOURCE_WHY = {
   'McKinsey Global Institute': 'Occupation-level automation exposure and early employer surveys — findings leadership can quote with confidence.',
+  'MOM (Singapore)': 'The ministry of record for employment, retrenchment and wages — what the government has actually said.',
+  'Straits Times (Singapore)': 'The national paper of record: if leadership will be asked about it, it ran here.',
+  'Channel NewsAsia': 'Of-record broadcast news, free in full — the fastest confirming outlet for Singapore developments.',
+  'ILO': 'The multilateral body of record on labour and skills — comparators and norms we can cite.',
+  'World Economic Forum': 'The Future of Jobs survey series and employer-side projections leadership already quotes.',
+  'Centre for Strategic Futures': 'The government\'s own foresight unit — what the centre is signalling about the future ahead.',
   'arXiv (Computers & Society)': 'Research on AI, work and society weeks before it is reported anywhere; weak-signal input, never a sole basis for High confidence.',
   'Ethan Mollick': 'The most-read practitioner voice on how AI is actually changing work, ahead of institutional reports.',
   'Singapore skills policy': 'SkillsFuture, WSG and MOM developments from outlets of record — the of-record anchor for anything about our own domain.',
@@ -1413,6 +1418,19 @@ function sourceRoles() {
   }
   return roles;
 }
+// Tier-2 probation rule: a source keeps its place by being FIRST on two or
+// more developments that others later confirmed, or by being cited in a scan.
+// New candidates get 30 days before that is judged (tier2Since in the store).
+const TIER_OF = Object.fromEntries(WATCHED_SOURCES.map(x => [x.name, x.tier || 1]));
+function sourceStatus(name, role, sc) {
+  const tier = TIER_OF[name];
+  if (!tier) return { tier: 0, status: 'tester-added' };
+  if (tier === 1) return { tier: 1, status: 'of record' };
+  const since = store.meta.tier2Since && store.meta.tier2Since[name];
+  const earned = (role && role.firstOn >= 2) || ((sc && sc.cited) || 0) >= 1;
+  if (earned) return { tier: 2, status: 'earned' };
+  return { tier: 2, status: since && Date.now() - since > 30 * 864e5 ? 'at risk' : 'probation' };
+}
 function graphView(user) {
   const now = Date.now();
   const mine = (user && profiles[user] && profiles[user].sources) || [];
@@ -1436,6 +1454,7 @@ function graphView(user) {
     return { name: k, kept: n.kept, discarded: n.discarded, embedded: n.items.length, issues: n.issues.size,
       domains: n.domains, topDomain: top ? top[0] : '', cited: (sc[k] || {}).cited || 0, scans: (sc[k] || {}).scans || 0,
       firstOn: r.firstOn, confirmedOn: r.confirmedOn, solo: r.solo, firstExamples: r.firstExamples,
+      ...sourceStatus(k, r, sc[k]),
       why: SOURCE_WHY[k] || (mine.find(s => s.name === k) || {}).why || '',
       isDefault: WATCHED_NAMES.has(k), lastSeen: Math.max(0, ...Object.values(store.signals).filter(s => s.source === k).map(s => s.lastSeen || 0)) };
   });
@@ -1489,7 +1508,9 @@ function auditView() {
     .sort((a, b) => (b.guard.at || 0) - (a.guard.at || 0))
     .slice(0, 30)
     .map(s => ({ source: s.source, title: s.title, link: s.link, hits: s.guard.hits, kinds: Object.keys(s.guard.kinds || {}) }));
-  return { discards, issues, quarantine, scorecard: sc, rotate, roles: sourceRoles(), reviews: (store.meta.reviews || []).slice(-30).reverse(),
+  const roleMap = sourceRoles();
+  const tiers = Object.fromEntries(WATCHED_SOURCES.map(x => [x.name, sourceStatus(x.name, roleMap[x.name], sc[x.name])]));
+  return { discards, issues, quarantine, scorecard: sc, rotate, roles: roleMap, tiers, reviews: (store.meta.reviews || []).slice(-30).reverse(),
     checks: store.meta.checks || { trends: 0, high: 0, highHeld: 0, adjusted: 0 } };
 }
 
