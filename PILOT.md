@@ -162,4 +162,13 @@ with open HTTPS.
   (every run re-triages stored signals left untriaged and re-clusters kept
   signals not yet in the ledger), so a bad gateway day delays the ledger but
   never leaves a permanent gap.
+- **AI budget.** The AI Studio key carries a spending budget; when it is used
+  up the gateway answers "budget(s) exceeded" to every call. The engine then
+  stops its background run at once (nothing is lost: untriaged items stay as
+  keep, unassigned ones wait), scans show a plain message naming the cause,
+  and `/api/store` reports `budgetExceeded: true`. Raise the budget in the
+  portal, then run `/api/store?backfill=1&recluster=1` once to rebuild the
+  ledger over everything that was skipped. A deep backfill costs ~130 model
+  calls and ~200k tokens; four in a day (2026-10-25) exhausted the budget —
+  run one, not several.
 - Tests: `node --test test/*.test.mjs` (no network needed).

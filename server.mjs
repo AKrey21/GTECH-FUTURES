@@ -204,12 +204,22 @@ async function pace() {
   lastGatewayAt = Date.now();
 }
 const isRateLimited = (r) => r.status === 429 || /rate limit/i.test(r.bodyText || '');
+// "1 budget(s) exceeded": the key's spending budget on AI Studio is used up.
+// Nothing recovers until the pilot owner raises it in the portal, so a run
+// stops at once (no 20s retries × 140 calls, as on 2026-10-25) and the
+// interactive paths say so plainly. Cleared after 10 quiet minutes so the
+// next pull probes again.
+const isBudgetExceeded = (r) => /budget/i.test(r.bodyText || '');
+let budgetBlockedAt = 0;
+const budgetBlocked = () => Date.now() - budgetBlockedAt < 10 * 60e3;
+const BUDGET_MSG = 'The AI budget for this deployment\'s key is used up — the pilot owner needs to raise it in the AI Studio portal. Everything else on this page still works.';
 
 // retryOnRateLimit: background callers (triage, clustering) get ONE retry after
 // a pause when the gateway throttles them. The interactive scan does not — a
 // 20s pause would blow its 60s edge budget; the client's own fallback handles it.
 async function callGateway({ model, messages, maxTokens, timeoutMs = 60000, jsonMode = false, retryOnRateLimit = false }) {
   const r = await callGatewayOnce({ model, messages, maxTokens, timeoutMs, jsonMode });
+  if (!r.ok && isBudgetExceeded(r)) { budgetBlockedAt = Date.now(); r.budget = true; return r; }
   if (retryOnRateLimit && !r.ok && isRateLimited(r)) {
     await new Promise(res => setTimeout(res, 20000));
     await pace();
@@ -261,7 +271,8 @@ function recordCall(r, extra) {
     truncated: r.finish === 'length' || undefined,
     jsonMode: r.jsonMode || undefined,
     retried: r.retried || undefined,
-    rateLimited: (!r.ok && isRateLimited(r)) || undefined,
+    budgetExceeded: r.budget || undefined,
+    rateLimited: (!r.ok && !r.budget && isRateLimited(r)) || undefined,
     error: r.error || (!r.ok ? String(r.bodyText).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) : undefined),
     ...extra,
   });
@@ -316,6 +327,7 @@ async function handleComplete(req, res) {
 
   if (!r.ok) {
     recordCall(r, base);
+    if (r.budget) return sendJSON(res, 503, { error: BUDGET_MSG });
     if (r.status === 0) {
       return sendJSON(res, 502, { error: 'could not reach model gateway: ' + (r.error === 'timeout' ? 'timeout (is the gateway reachable from GCC?)' : r.error) });
     }
@@ -1253,6 +1265,7 @@ function ingestSources(list, backfill) {
     const deadline = Date.now() + (backfill ? 25 : 10) * 60e3;
     for (let i = 0; i < fresh.length; i += 12) {
       if (Date.now() > deadline) { console.log(`triage deadline hit: ${fresh.length - i} items stay untriaged (keep)`); break; }
+      if (budgetBlocked()) { console.log(`AI budget exceeded: ${fresh.length - i} items stay untriaged (keep) until it is raised`); break; }
       await hardCap(75e3, triageBatch(fresh.slice(i, i + 12)));
     }
     if (backfill) saveStore();
@@ -1282,6 +1295,7 @@ function ingestSources(list, backfill) {
     const clusterDeadline = deadline + (opts.recluster ? 60 : backfill ? 35 : 4) * 60e3;
     for (let i = 0; i < kept.length; i += 10) {
       if (Date.now() > clusterDeadline) { console.log('clustering deadline hit: remaining signals stay unassigned'); break; }
+      if (budgetBlocked()) { console.log('AI budget exceeded: remaining signals stay unassigned until it is raised'); break; }
       await hardCap(75e3, clusterBatch(kept.slice(i, i + 10), now));
       if (backfill && i % 50 === 0) saveStore();   // checkpoint a long run
     }
@@ -1656,7 +1670,7 @@ async function handleStore(req, res, qs) {
     const d = s.triage && s.triage.domain;
     if (d) domains[d] = (domains[d] || 0) + 1;
   }
-  return sendJSON(res, 200, { ...storeView(authUser(req)), domains, building: !!ingesting, phase: ingestPhase,
+  return sendJSON(res, 200, { ...storeView(authUser(req)), domains, building: !!ingesting, phase: ingestPhase, budgetExceeded: budgetBlocked() || undefined,
     upMin: Math.round((Date.now() - SRV_STARTED) / 60e3) });
 }
 
